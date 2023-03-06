@@ -1,2 +1,2 @@
 import torch
-print(torch.randn(2,3))
+print(torch.randn(3,3))
