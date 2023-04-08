@@ -15,6 +15,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torchvision
+import torch.nn.functional as F
 
 import timm.models.vision_transformer
 from timm.models.vision_transformer import HybridEmbed, PatchEmbed
@@ -31,9 +32,9 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         self.in_chans = kwargs['in_chans']
         del self.norm  # remove the original norm
 
-        self.return_layers = {"block8": "0", "block9": "1", "block10": "2", "block11": "3"}
         self.simple_fpn = torchvision.ops.FeaturePyramidNetwork([768,768,768,768], 256)
         self.norm_ = nn.LayerNorm(256)
+        self.linear_ = nn.Linear(768, 256)
 
     def _init_patch_embed(self, img_size):
         if self.hybrid_backbone is not None:
@@ -45,40 +46,51 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         num_patches = self.patch_embed.num_patches
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
 
-    def forward_features(self, x):#: NestedTensor):
-        # x = tensor_list.tensors
+    def forward_features(self, tensor_list: NestedTensor, position_embedding, position_embedding_):#: NestedTensor):
+        x = tensor_list.tensors
+        mask = tensor_list.mask
         B = x.shape[0]
         H, W = x.shape[2:]
+        H_, W_ = H//16, W//16
         x = self.patch_embed(x)
+        mask = F.interpolate(mask[None].float(), size=(H_,W_)).to(torch.bool)[0]
+        mask_ = F.interpolate(mask[None].float(), size=(H_,W_)).to(torch.bool)[0]
 
         cls_tokens = self.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
         x = torch.cat((cls_tokens, x), dim=1)
-        x = x + self.pos_embed
+        mask_ = F.interpolate(mask[None].float(), size=(x.shape[1],1)).to(torch.bool)[0]
+        pos = position_embedding_(NestedTensor(x, mask_))
+        if pos is not None:
+            x = x + pos.squeeze(3).permute(0,2,1)
         x = self.pos_drop(x)
         xs = OrderedDict()
+        masks = []
+        
 
         for _, blk in enumerate(self.blocks):
             x = blk(x)
-            if _ in [8, 9,10,11]:
-                xs['layer'+str(_)] = x[:,1:,:].permute(0,2,1).view(B, -1, H//16, W//16)
+            if _ in [10,11]:
+                xs['block'+str(_)] = x[:,1:,:].permute(0,2,1).view(B, -1, H//16, W//16)
+                masks.append(mask)
 
-        # out: Dict[str, NestedTensor] = {}
-        # for name, x in xs.items():
-        #     m = tensor_list.mask
-        #     assert m is not None
-        #     mask = F.interpolate(m[None].float(), size=x.shape[-2:]).to(torch.bool)[0]
-        #     out[name] = NestedTensor(x, mask)
-        # return out
-        xs = self.simple_fpn(xs)
+        xs_ = self.simple_fpn(xs)
+        xs['block10_'] = xs_['block10']
+        xs['block11_'] = xs_['block11']
+        xs['block10'] = self.linear_(xs['block10'].permute(0,2,3,1)).permute(0,3,1,2)
+        xs['block11'] = self.linear_(xs['block11'].permute(0,2,3,1)).permute(0,3,1,2)
+        xs = list(xs.values())
+        xs = [self.norm_(x.permute(0,2,3,1)).permute(0,3,1,2) for x in xs]
+        masks.extend(masks)
+        pos_embeds = [position_embedding(NestedTensor(xs[i], masks[i])) for i in range(len(xs))]
 
-        return xs
+        return xs, masks, pos_embeds
     
-    def forward(self, tensor_list):
-        # self._init_patch_embed(x.shape[2:])
-        self._init_patch_embed(224)
+    def forward(self, tensor_list: NestedTensor, position_embedding, position_embedding_):
+        self._init_patch_embed(tensor_list.tensors.shape[2:])
+        # self._init_patch_embed(224)
         self.to('cuda:0')
-        outs = self.forward_features(tensor_list)
-        return outs
+        xs, masks, pos_embeds = self.forward_features(tensor_list, position_embedding, position_embedding_)
+        return xs, masks, pos_embeds
 
 
 def vit_base_patch16(**kwargs):

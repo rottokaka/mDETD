@@ -19,6 +19,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import datasets
+from models.position_encoding import build_position_encoding_, build_position_encoding
 import util.misc as utils
 import datasets.samplers as samplers
 from datasets import build_dataset, get_coco_api_from_dataset
@@ -56,8 +57,12 @@ def get_args_parser():
                         help="Path to the pretrained model. If set, only the mask head will be trained")
 
     # * Backbone
-    parser.add_argument('--backbone', default='resnet50', type=str,
+    parser.add_argument('--poor', default=True, action='store_true',
+                        help="This will freeze parameters of first 8 block of vit")
+    parser.add_argument('--backbone', default='vit_base_patch16', type=str,
                         help="Name of the convolutional backbone to use")
+    parser.add_argument('--pretrained_backbone_path', default='', type=str,
+                        help="Path to the pretrained backbone")
     parser.add_argument('--dilation', action='store_true',
                         help="If true, we replace stride with dilation in the last convolutional block (DC5)")
     parser.add_argument('--position_embedding', default='sine', type=str, choices=('sine', 'learned'),
@@ -330,45 +335,49 @@ def main(args):
 
 
 if __name__ == '__main__':
-    model = models_vit.__dict__['vit_base_patch16'](
-        drop_path_rate=0.1,
-        in_chans=3
-    )
+    # model = models_vit.__dict__['vit_base_patch16'](
+    #     drop_path_rate=0.1,
+    #     in_chans=3,
+    #     img_size=1333
+    # )
 
-    checkpoint = torch.load("./pre-trained checkpoints/mae_pretrain_vit_base.pth", map_location='cpu')
+    # checkpoint = torch.load("./pre-trained checkpoints/mae_pretrain_vit_base.pth", map_location='cpu')
 
-    print("Load pre-trained checkpoint from: %s" % "./pre-trained checkpoints/mae_pretrain_vit_base.pth")
-    checkpoint_model = checkpoint['model']
-    state_dict = model.state_dict()
-    for k in ['head.weight', 'head.bias']:
-        if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
-            print(f"Removing key {k} from pretrained checkpoint")
-            del checkpoint_model[k]
+    # print("Load pre-trained checkpoint from: %s" % "./pre-trained checkpoints/mae_pretrain_vit_base.pth")
+    # checkpoint_model = checkpoint['model']
+    # state_dict = model.state_dict()
+    # for k in ['head.weight', 'head.bias']:
+    #     if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
+    #         print(f"Removing key {k} from pretrained checkpoint")
+    #         del checkpoint_model[k]
 
     # interpolate position embedding
-    interpolate_pos_embed(model, checkpoint_model)
+    # interpolate_pos_embed(model, checkpoint_model)
 
     # load pre-trained model
-    msg = model.load_state_dict(checkpoint_model, strict=False)
+    # msg = model.load_state_dict(checkpoint_model, strict=False)
     # print(model)
     # trunc_normal_(model.head.weight, std=2e-5)
 
-    model_without_ddp = model
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    # model_without_ddp = model
+    # n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     # print('number of params:', n_parameters)
 
-    for _, block in enumerate(model_without_ddp.blocks):
-        if _ < 8:
-            for param in block.parameters():
-                param.requires_grad = False
+    # for _, block in enumerate(model_without_ddp.blocks):
+    #     if _ < 8:
+    #         for param in block.parameters():
+    #             param.requires_grad = False
 
-    for n, p in model_without_ddp.named_parameters():
-        if p.requires_grad:
-            print(n)
+    # for n, p in model_without_ddp.named_parameters():
+    #     if p.requires_grad:
+    #         print(n)
 
     parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
     utils.init_distributed_mode(args)
+
+    model, criterion, postprocessors = build_model(args)
+    model.to('cuda:0')
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
@@ -398,5 +407,79 @@ if __name__ == '__main__':
     samples, targets = prefetcher.next()
 
     model.to('cuda:0')
-    outs = model(samples.tensors)
-    print(outs)
+    for n, p in model.named_parameters():
+        print(n)
+    # outs = model(samples)
+    # print(outs)
+
+# if __name__ == '__main__':
+#     model = models_vit.__dict__['vit_base_patch16'](
+#         drop_path_rate=0.1,
+#         in_chans=3
+#     )
+
+#     checkpoint = torch.load("./pre-trained checkpoints/mae_pretrain_vit_base.pth", map_location='cpu')
+
+#     print("Load pre-trained checkpoint from: %s" % "./pre-trained checkpoints/mae_pretrain_vit_base.pth")
+#     checkpoint_model = checkpoint['model']
+#     state_dict = model.state_dict()
+#     for k in ['head.weight', 'head.bias']:
+#         if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
+#             print(f"Removing key {k} from pretrained checkpoint")
+#             del checkpoint_model[k]
+
+#     # interpolate position embedding
+#     interpolate_pos_embed(model, checkpoint_model)
+
+#     # load pre-trained model
+#     msg = model.load_state_dict(checkpoint_model, strict=False)
+#     # print(model)
+#     # trunc_normal_(model.head.weight, std=2e-5)
+
+#     model_without_ddp = model
+#     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+#     # print('number of params:', n_parameters)
+
+#     for _, block in enumerate(model_without_ddp.blocks):
+#         if _ < 8:
+#             for param in block.parameters():
+#                 param.requires_grad = False
+
+#     for n, p in model_without_ddp.named_parameters():
+#         if p.requires_grad:
+#             print(n)
+
+#     parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
+#     args = parser.parse_args()
+#     utils.init_distributed_mode(args)
+
+#     dataset_train = build_dataset(image_set='train', args=args)
+#     dataset_val = build_dataset(image_set='val', args=args)
+
+#     if args.distributed:
+#         if args.cache_mode:
+#             sampler_train = samplers.NodeDistributedSampler(dataset_train)
+#             sampler_val = samplers.NodeDistributedSampler(dataset_val, shuffle=False)
+#         else:
+#             sampler_train = samplers.DistributedSampler(dataset_train)
+#             sampler_val = samplers.DistributedSampler(dataset_val, shuffle=False)
+#     else:
+#         sampler_train = torch.utils.data.RandomSampler(dataset_train)
+#         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
+
+#     batch_sampler_train = torch.utils.data.BatchSampler(
+#         sampler_train, args.batch_size, drop_last=True)
+
+#     data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
+#                                    collate_fn=utils.collate_fn, num_workers=args.num_workers,
+#                                    pin_memory=True)
+#     data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
+#                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers,
+#                                  pin_memory=True)
+    
+#     prefetcher = data_prefetcher(data_loader_train, 'cuda:0', prefetch=True)
+#     samples, targets = prefetcher.next()
+
+#     model.to('cuda:0')
+#     outs = model(samples.tensors)
+#     print(outs)

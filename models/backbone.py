@@ -25,7 +25,7 @@ from models import models_vit
 
 from util.misc import NestedTensor, is_main_process
 
-from .position_encoding import build_position_encoding
+from .position_encoding import build_position_encoding, build_position_encoding_
 
 
 class FrozenBatchNorm2d(torch.nn.Module):
@@ -69,7 +69,6 @@ class FrozenBatchNorm2d(torch.nn.Module):
 
 
 class BackboneBase(nn.Module):
-
     def __init__(self, backbone: nn.Module, train_backbone: bool, return_interm_layers: bool):
         super().__init__()
         for name, parameter in backbone.named_parameters():
@@ -97,34 +96,37 @@ class BackboneBase(nn.Module):
         return out
 
 class ViTBackbone(nn.Module):
-    def __init__(self, backbone: str, train_backbone: bool, return_interm_layers: bool, args):
+    def __init__(self, args, position_embedding, position_embedding_):
         super().__init__()
-        if backbone == "vit_base_patch16":
+        if args.backbone == "vit_base_patch16":
             backbone = models_vit.__dict__['vit_base_patch16'](
                 drop_path_rate=0.1,
                 in_chans=3
             )
-            checkpoint = torch.load(args.pretrained_backbone_path, map_location='cpu')
-            checkpoint_backbone = checkpoint['model']
-            state_dict = backbone.state_dict()
-            for k in ['head.weight', 'head.bias']:
-                if k in checkpoint_backbone and checkpoint_backbone[k].shape != state_dict[k].shape:
-                    print(f"Removing key {k} from pretrained checkpoint")
-                    del checkpoint_backbone[k]
-            interpolate_pos_embed(backbone, checkpoint_backbone)
-            backbone.load_state_dict(checkpoint_backbone, strict=False)
+            if args.pretrained_backbone_path:
+                checkpoint = torch.load(args.pretrained_backbone_path, map_location='cpu')
+                checkpoint_backbone = checkpoint['model']
+                state_dict = backbone.state_dict()
+                for k in ['head.weight', 'head.bias']:
+                    if k in checkpoint_backbone and checkpoint_backbone[k].shape != state_dict[k].shape:
+                        print(f"Removing key {k} from pretrained checkpoint")
+                        del checkpoint_backbone[k]
+                interpolate_pos_embed(backbone, checkpoint_backbone)
+                backbone.load_state_dict(checkpoint_backbone, strict=False)
+            if args.poor:
+                for _, block in enumerate(backbone.blocks):
+                    if _ < 8:
+                        for param in block.parameters():
+                            param.requires_grad = False
+            self.backbone = backbone
+            self.position_embedding = position_embedding
+            self.position_embedding_ = position_embedding_
         else:
             raise NotImplementedError
-        if return_interm_layers:
-            # return_layers = {"layer1": "0", "layer2": "1", "layer3": "2", "layer4": "3"}
-            return_layers = {"layer2": "0", "layer3": "1", "layer4": "2"}
-            self.strides = [8, 16, 32]
-            self.num_channels = [512, 1024, 2048]
-        else:
-            return_layers = {'layer4': "0"}
-            self.strides = [32]
-            self.num_channels = [2048]
-        # self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        
+    def forward(self, tensor_list: NestedTensor):
+        srcs, masks, pos_embeds = self.backbone(tensor_list, self.position_embedding, self.position_embedding_)
+        return srcs, masks, pos_embeds
 
 # class TransformerBackbone(nn.Module):
 #     def __init__(
@@ -260,8 +262,6 @@ class Joiner(nn.Sequential):
 
 def build_backbone(args):
     position_embedding = build_position_encoding(args)
-    train_backbone = args.lr_backbone > 0
-    return_interm_layers = args.masks or (args.num_feature_levels > 1)
-    backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation)
-    model = Joiner(backbone, position_embedding)
-    return model
+    position_embedding_ = build_position_encoding_(args)
+    backbone = ViTBackbone(args, position_embedding, position_embedding_)
+    return backbone
