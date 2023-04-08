@@ -357,8 +357,14 @@ if __name__ == '__main__':
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     # print('number of params:', n_parameters)
 
-    # for n, p in model_without_ddp.named_parameters():
-    #     print(n)
+    for _, block in enumerate(model_without_ddp.blocks):
+        if _ < 8:
+            for param in block.parameters():
+                param.requires_grad = False
+
+    for n, p in model_without_ddp.named_parameters():
+        if p.requires_grad:
+            print(n)
 
     parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
@@ -393,4 +399,4 @@ if __name__ == '__main__':
 
     model.to('cuda:0')
     outs = model(samples.tensors)
-    # print(outs)
+    print(outs)

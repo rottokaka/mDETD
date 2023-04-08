@@ -10,9 +10,11 @@
 # --------------------------------------------------------
 
 from functools import partial
+from collections import OrderedDict
 
 import torch
 import torch.nn as nn
+import torchvision
 
 import timm.models.vision_transformer
 from timm.models.vision_transformer import HybridEmbed, PatchEmbed
@@ -30,7 +32,8 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         del self.norm  # remove the original norm
 
         self.return_layers = {"block8": "0", "block9": "1", "block10": "2", "block11": "3"}
-        self.linear = nn.Linear(728,256)
+        self.simple_fpn = torchvision.ops.FeaturePyramidNetwork([768,768,768,768], 256)
+        self.norm_ = nn.LayerNorm(256)
 
     def _init_patch_embed(self, img_size):
         if self.hybrid_backbone is not None:
@@ -45,18 +48,19 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
     def forward_features(self, x):#: NestedTensor):
         # x = tensor_list.tensors
         B = x.shape[0]
+        H, W = x.shape[2:]
         x = self.patch_embed(x)
 
         cls_tokens = self.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
         x = torch.cat((cls_tokens, x), dim=1)
         x = x + self.pos_embed
-        x = self.pos_drop(x) 
-        xs = []
+        x = self.pos_drop(x)
+        xs = OrderedDict()
 
         for _, blk in enumerate(self.blocks):
             x = blk(x)
             if _ in [8, 9,10,11]:
-                xs.append(x)
+                xs['layer'+str(_)] = x[:,1:,:].permute(0,2,1).view(B, -1, H//16, W//16)
 
         # out: Dict[str, NestedTensor] = {}
         # for name, x in xs.items():
@@ -65,6 +69,7 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         #     mask = F.interpolate(m[None].float(), size=x.shape[-2:]).to(torch.bool)[0]
         #     out[name] = NestedTensor(x, mask)
         # return out
+        xs = self.simple_fpn(xs)
 
         return xs
     
