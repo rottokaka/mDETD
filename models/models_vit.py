@@ -17,21 +17,20 @@ import torch.nn as nn
 import timm.models.vision_transformer
 from timm.models.vision_transformer import HybridEmbed, PatchEmbed
 
+from util.misc import NestedTensor, is_main_process
+
 
 class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
     """ Vision Transformer with support for global average pooling
     """
-    def __init__(self, global_pool=False, **kwargs):
+    def __init__(self, **kwargs):
         super(VisionTransformer, self).__init__(**kwargs)
 
-        self.global_pool = global_pool
         self.in_chans = kwargs['in_chans']
-        if self.global_pool:
-            norm_layer = kwargs['norm_layer']
-            embed_dim = kwargs['embed_dim']
-            self.fc_norm = norm_layer(embed_dim)
+        del self.norm  # remove the original norm
 
-            del self.norm  # remove the original norm
+        self.return_layers = {"block8": "0", "block9": "1", "block10": "2", "block11": "3"}
+        self.linear = nn.Linear(728,256)
 
     def _init_patch_embed(self, img_size):
         if self.hybrid_backbone is not None:
@@ -43,34 +42,38 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         num_patches = self.patch_embed.num_patches
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
 
-    def forward_features(self, x):
+    def forward_features(self, x):#: NestedTensor):
+        # x = tensor_list.tensors
         B = x.shape[0]
         x = self.patch_embed(x)
 
         cls_tokens = self.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
         x = torch.cat((cls_tokens, x), dim=1)
         x = x + self.pos_embed
-        x = self.pos_drop(x)
+        x = self.pos_drop(x) 
+        xs = []
 
-        for blk in self.blocks:
+        for _, blk in enumerate(self.blocks):
             x = blk(x)
+            if _ in [8, 9,10,11]:
+                xs.append(x)
 
-        if self.global_pool:
-            x = x[:, 1:, :].mean(dim=1)  # global pool without cls token
-            outcome = self.fc_norm(x)
-        else:
-            x = self.norm(x)
-            outcome = x[:, 0]
+        # out: Dict[str, NestedTensor] = {}
+        # for name, x in xs.items():
+        #     m = tensor_list.mask
+        #     assert m is not None
+        #     mask = F.interpolate(m[None].float(), size=x.shape[-2:]).to(torch.bool)[0]
+        #     out[name] = NestedTensor(x, mask)
+        # return out
 
-        return outcome
+        return xs
     
-    def forward(self, x):
+    def forward(self, tensor_list):
         # self._init_patch_embed(x.shape[2:])
         self._init_patch_embed(224)
         self.to('cuda:0')
-        x = self.forward_features(x)
-        x = self.head(x)
-        return x
+        outs = self.forward_features(tensor_list)
+        return outs
 
 
 def vit_base_patch16(**kwargs):

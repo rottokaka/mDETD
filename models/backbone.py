@@ -18,6 +18,10 @@ import torchvision
 from torch import nn
 from torchvision.models._utils import IntermediateLayerGetter
 from typing import Dict, List
+from timm.models.vision_transformer import HybridEmbed, PatchEmbed
+from util.pos_embed import interpolate_pos_embed
+from models import models_vit
+
 
 from util.misc import NestedTensor, is_main_process
 
@@ -92,6 +96,131 @@ class BackboneBase(nn.Module):
             out[name] = NestedTensor(x, mask)
         return out
 
+class ViTBackbone(nn.Module):
+    def __init__(self, backbone: str, train_backbone: bool, return_interm_layers: bool, args):
+        super().__init__()
+        if backbone == "vit_base_patch16":
+            backbone = models_vit.__dict__['vit_base_patch16'](
+                drop_path_rate=0.1,
+                in_chans=3
+            )
+            checkpoint = torch.load(args.pretrained_backbone_path, map_location='cpu')
+            checkpoint_backbone = checkpoint['model']
+            state_dict = backbone.state_dict()
+            for k in ['head.weight', 'head.bias']:
+                if k in checkpoint_backbone and checkpoint_backbone[k].shape != state_dict[k].shape:
+                    print(f"Removing key {k} from pretrained checkpoint")
+                    del checkpoint_backbone[k]
+            interpolate_pos_embed(backbone, checkpoint_backbone)
+            backbone.load_state_dict(checkpoint_backbone, strict=False)
+        else:
+            raise NotImplementedError
+        if return_interm_layers:
+            # return_layers = {"layer1": "0", "layer2": "1", "layer3": "2", "layer4": "3"}
+            return_layers = {"layer2": "0", "layer3": "1", "layer4": "2"}
+            self.strides = [8, 16, 32]
+            self.num_channels = [512, 1024, 2048]
+        else:
+            return_layers = {'layer4': "0"}
+            self.strides = [32]
+            self.num_channels = [2048]
+        # self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
+
+# class TransformerBackbone(nn.Module):
+#     def __init__(
+#         self, backbone: str, train_backbone: bool, return_interm_layers: bool, args
+#     ):
+#         super().__init__()
+#         out_indices = (1, 2, 3)
+#         if backbone == "swin_tiny":
+#             backbone = SwinTransformer(
+#                 embed_dim=96,
+#                 depths=[2, 2, 6, 2],
+#                 num_heads=[3, 6, 12, 24],
+#                 window_size=7,
+#                 ape=False,
+#                 drop_path_rate=args.drop_path_rate,
+#                 patch_norm=True,
+#                 use_checkpoint=True,
+#                 out_indices=out_indices,
+#             )
+#             embed_dim = 96
+#             backbone.init_weights(args.pretrained_backbone_path)
+#         elif backbone == "swin_small":
+#             backbone = SwinTransformer(
+#                 embed_dim=96,
+#                 depths=[2, 2, 18, 2],
+#                 num_heads=[3, 6, 12, 24],
+#                 window_size=7,
+#                 ape=False,
+#                 drop_path_rate=args.drop_path_rate,
+#                 patch_norm=True,
+#                 use_checkpoint=True,
+#                 out_indices=out_indices,
+#             )
+#             embed_dim = 96
+#             backbone.init_weights(args.pretrained_backbone_path)
+#         elif backbone == "swin_large":
+#             backbone = SwinTransformer(
+#                 embed_dim=192,
+#                 depths=[2, 2, 18, 2],
+#                 num_heads=[6, 12, 24, 48],
+#                 window_size=7,
+#                 ape=False,
+#                 drop_path_rate=args.drop_path_rate,
+#                 patch_norm=True,
+#                 use_checkpoint=True,
+#                 out_indices=out_indices,
+#             )
+#             embed_dim = 192
+#             backbone.init_weights(args.pretrained_backbone_path)
+#         elif backbone == "swin_large_window12":
+#             backbone = SwinTransformer(
+#                 pretrain_img_size=384,
+#                 embed_dim=192,
+#                 depths=[2, 2, 18, 2],
+#                 num_heads=[6, 12, 24, 48],
+#                 window_size=12,
+#                 ape=False,
+#                 drop_path_rate=args.drop_path_rate,
+#                 patch_norm=True,
+#                 use_checkpoint=True,
+#                 out_indices=out_indices,
+#             )
+#             embed_dim = 192
+#             backbone.init_weights(args.pretrained_backbone_path)
+#         else:
+#             raise NotImplementedError
+
+#         for name, parameter in backbone.named_parameters():
+#             # TODO: freeze some layers?
+#             if not train_backbone:
+#                 parameter.requires_grad_(False)
+
+#         if return_interm_layers:
+
+#             self.strides = [8, 16, 32]
+#             self.num_channels = [
+#                 embed_dim * 2,
+#                 embed_dim * 4,
+#                 embed_dim * 8,
+#             ]
+#         else:
+#             self.strides = [32]
+#             self.num_channels = [embed_dim * 8]
+
+#         self.body = backbone
+
+#     def forward(self, tensor_list: NestedTensor):
+#         xs = self.body(tensor_list.tensors)
+
+#         out: Dict[str, NestedTensor] = {}
+#         for name, x in xs.items():
+#             m = tensor_list.mask
+#             assert m is not None
+#             mask = F.interpolate(m[None].float(), size=x.shape[-2:]).to(torch.bool)[0]
+#             out[name] = NestedTensor(x, mask)
+#         return out
 
 class Backbone(BackboneBase):
     """ResNet backbone with frozen BatchNorm."""

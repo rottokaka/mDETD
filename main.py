@@ -26,6 +26,7 @@ from engine import evaluate, train_one_epoch
 from models import build_model, models_vit
 from util.pos_embed import interpolate_pos_embed
 from datasets.data_prefetcher import data_prefetcher
+import torchvision
 
 
 def get_args_parser():
@@ -330,9 +331,7 @@ def main(args):
 
 if __name__ == '__main__':
     model = models_vit.__dict__['vit_base_patch16'](
-        num_classes=90,
         drop_path_rate=0.1,
-        global_pool=True,
         in_chans=3
     )
 
@@ -353,7 +352,14 @@ if __name__ == '__main__':
     msg = model.load_state_dict(checkpoint_model, strict=False)
     # print(model)
     # trunc_normal_(model.head.weight, std=2e-5)
-    
+
+    model_without_ddp = model
+    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    # print('number of params:', n_parameters)
+
+    # for n, p in model_without_ddp.named_parameters():
+    #     print(n)
+
     parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
     utils.init_distributed_mode(args)
@@ -387,4 +393,4 @@ if __name__ == '__main__':
 
     model.to('cuda:0')
     outs = model(samples.tensors)
-    print(outs)
+    # print(outs)
