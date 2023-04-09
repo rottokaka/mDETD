@@ -37,7 +37,7 @@ def get_args_parser():
     parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
-    parser.add_argument('--batch_size', default=4, type=int)
+    parser.add_argument('--batch_size', default=1, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--lr_drop', default=40, type=int)
@@ -63,6 +63,8 @@ def get_args_parser():
                         help="Name of the convolutional backbone to use")
     parser.add_argument('--pretrained_backbone_path', default='', type=str,
                         help="Path to the pretrained backbone")
+    # parser.add_argument('--pretrained_backbone_path', default='./pre-trained checkpoints/mae_pretrain_vit_base.pth', type=str,
+    #                     help="Path to the pretrained backbone")
     parser.add_argument('--dilation', action='store_true',
                         help="If true, we replace stride with dilation in the last convolutional block (DC5)")
     parser.add_argument('--position_embedding', default='sine', type=str, choices=('sine', 'learned'),
@@ -131,6 +133,7 @@ def get_args_parser():
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_0.pth', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
@@ -298,7 +301,7 @@ def main(args):
         if args.output_dir:
             checkpoint_paths = [output_dir / 'mDETD_0.pth']
             # extra checkpoint before LR drop and every 5 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 50 == 0:
+            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
@@ -351,3 +354,23 @@ if __name__ == '__main__':
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
+
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser()])
+#     args = parser.parse_args()
+#     if args.output_dir:
+#         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+#     model, criterion, postprocessors = build_model(args)
+#     pretrained_dict = torch.load('pre-trained checkpoints/full_coco_finetune.pth', map_location='cpu')
+#     model_dict = model.state_dict()
+
+#     # 1. filter out unnecessary keys
+#     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+#     # 2. overwrite entries in the existing state dict
+#     model_dict.update(pretrained_dict) 
+#     # 3. load the new state dict
+#     model.load_state_dict(model_dict)
+#     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_0.pth')
+
+
+    

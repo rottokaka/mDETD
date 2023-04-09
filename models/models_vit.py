@@ -82,7 +82,7 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         return xs, masks, pos_embeds
     
     def forward(self, tensor_list: NestedTensor, position_embedding, position_embedding_):
-        self._init_patch_embed(tensor_list.tensors.shape[2:])
+        # self._init_patch_embed(tensor_list.tensors.shape[2:])
         # self._init_patch_embed(224)
         self.to('cuda:0')
         xs, masks, pos_embeds = self.forward_features(tensor_list, position_embedding, position_embedding_)
