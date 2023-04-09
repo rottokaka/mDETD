@@ -125,7 +125,7 @@ def get_args_parser():
     parser.add_argument('--coco_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
 
-    parser.add_argument('--output_dir', default='./',
+    parser.add_argument('--output_dir', default='../',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -290,8 +290,11 @@ def main(args):
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
-        if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 50 == 0:
-            checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
+        if args.output_dir:
+            checkpoint_paths = [output_dir]
+            # extra checkpoint before LR drop and every 5 epochs
+            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 50 == 0:
+                checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
                     'model': model_without_ddp.state_dict(),
