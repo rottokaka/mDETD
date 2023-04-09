@@ -118,10 +118,10 @@ def get_args_parser():
     # dataset parameters
     parser.add_argument('--dataset_file', default='minicoco')
     parser.add_argument('--coco_path', default='detr//datasets//', type=str)
-    parser.add_argument('--mini_coco_path_train_img', default='', type=str)
-    parser.add_argument('--mini_coco_path_train_ann', default='', type=str)
-    parser.add_argument('--mini_coco_path_val_img', default='', type=str)
-    parser.add_argument('--mini_coco_path_val_ann', default='', type=str)
+    parser.add_argument('--mini_coco_path_train_img', default='/kaggle/input/coco25k/images', type=str)
+    parser.add_argument('--mini_coco_path_train_ann', default='/kaggle/input/minicoco-annotations/instances_minitrain2017.json', type=str)
+    parser.add_argument('--mini_coco_path_val_img', default='/kaggle/input/coco-2017-dataset/coco2017/val2017', type=str)
+    parser.add_argument('--mini_coco_path_val_ann', default='/kaggle/input/coco-2017-dataset/coco2017/annotations/instances_val2017.json', type=str)
     parser.add_argument('--coco_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
 
@@ -130,7 +130,7 @@ def get_args_parser():
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
-    parser.add_argument('--resume', default='', help='resume from checkpoint')
+    parser.add_argument('--resume', default='https://drive.google.com/uc?id=1s6NlyEe2plppZhcWYT8dEfvyUK2RIPM5&export=download', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
