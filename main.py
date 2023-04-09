@@ -37,7 +37,7 @@ def get_args_parser():
     parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
-    parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--lr_drop', default=40, type=int)
