@@ -255,7 +255,7 @@ def main(args):
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         if args.poor:
             for _, block in enumerate(model.backbone.backbone.blocks):
-                if _ < 10:
+                if _ < 11:
                     for param in block.parameters():
                         param.requires_grad = False
                         print(param.requires_grad)
