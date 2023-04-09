@@ -258,6 +258,7 @@ def main(args):
                 if _ < 8:
                     for param in block.parameters():
                         param.requires_grad = False
+        print(model)
         # unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
         # if len(missing_keys) > 0:
         #     print('Missing Keys: {}'.format(missing_keys))
