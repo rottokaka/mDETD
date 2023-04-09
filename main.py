@@ -196,8 +196,8 @@ def main(args):
                 break
         return out
 
-    for n, p in model_without_ddp.named_parameters():
-        print(n)
+    # for n, p in model_without_ddp.named_parameters():
+    #     print(n)
 
     param_dicts = [
         {
@@ -256,9 +256,10 @@ def main(args):
         if args.poor:
             for _, block in enumerate(model.backbone.backbone.blocks):
                 if _ < 8:
+                    print(block)
                     for param in block.parameters():
                         param.requires_grad = False
-        print(model)
+        # print(model)
         # unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
         # if len(missing_keys) > 0:
         #     print('Missing Keys: {}'.format(missing_keys))
