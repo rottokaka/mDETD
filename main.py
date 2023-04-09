@@ -37,7 +37,7 @@ def get_args_parser():
     parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
-    parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--batch_size', default=2, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--lr_drop', default=40, type=int)
@@ -255,10 +255,9 @@ def main(args):
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         if args.poor:
             for _, block in enumerate(model.backbone.backbone.blocks):
-                if _ < 11:
+                if _ < 6:
                     for param in block.parameters():
                         param.requires_grad = False
-                        print(param.requires_grad)
         # print(model)
         # unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
         # if len(missing_keys) > 0:
