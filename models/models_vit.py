@@ -37,12 +37,8 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         self.linear_ = nn.Linear(768, 256)
 
     def _init_patch_embed(self, img_size):
-        if self.hybrid_backbone is not None:
-            self.patch_embed = HybridEmbed(
-                self.hybrid_backbone, img_size=img_size, in_chans=self.in_chans, embed_dim=self.embed_dim)
-        else:
-            self.patch_embed = PatchEmbed(
-                img_size=img_size, patch_size=self.patch_size, in_chans=self.in_chans, embed_dim=self.embed_dim)
+        self.patch_embed = PatchEmbed(
+            img_size=img_size, patch_size=self.patch_size, in_chans=self.in_chans, embed_dim=self.embed_dim)
         num_patches = self.patch_embed.num_patches
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
 
