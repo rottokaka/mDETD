@@ -246,6 +246,12 @@ def main(args):
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
+        checkpoint_model = checkpoint['model']
+        state_dict = model.state_dict()
+        for k in ['backbone.backbone.pos_embed']:
+            if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
+                del checkpoint_model[k]
+        interpolate_pos_embed(model_without_ddp, checkpoint_model)
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         # unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
         # if len(missing_keys) > 0:
