@@ -31,15 +31,15 @@ import torchvision
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser('Deformable DETR Detector', add_help=False)
+    parser = argparse.ArgumentParser('ViT Deformable DETR Detector', add_help=False)
     parser.add_argument('--lr', default=2e-4, type=float)
-    parser.add_argument('--lr_backbone_names', default=["backbone.0"], type=str, nargs='+')
-    parser.add_argument('--lr_backbone', default=2e-5, type=float)
+    parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
+    parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
     parser.add_argument('--batch_size', default=1, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
-    parser.add_argument('--epochs', default=1, type=int)
+    parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--lr_drop', default=40, type=int)
     parser.add_argument('--lr_drop_epochs', default=None, type=int, nargs='+')
     parser.add_argument('--clip_max_norm', default=0.1, type=float,
@@ -72,6 +72,8 @@ def get_args_parser():
     parser.add_argument('--num_feature_levels', default=4, type=int, help='number of feature levels')
 
     # * Transformer
+    # parser.add_argument('--pretrained_decoder_path', default='./pre-trained checkpoints/full_coco_finetune.pth', type=str,
+    #                     help="Path to the pretrained decoder")
     parser.add_argument('--enc_layers', default=6, type=int,
                         help="Number of encoding layers in the transformer")
     parser.add_argument('--dec_layers', default=6, type=int,
@@ -119,7 +121,7 @@ def get_args_parser():
     parser.add_argument('--coco_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
 
-    parser.add_argument('--output_dir', default='',
+    parser.add_argument('--output_dir', default='./pre-trained checkpoints',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -197,7 +199,7 @@ def main(args):
         {
             "params":
                 [p for n, p in model_without_ddp.named_parameters()
-                 if not match_name_keywords(n, args.lr_backbone_names) and not match_name_keywords(n, args.lr_linear_proj_names) and p.requires_grad],
+                 if not match_name_keywords(n, args.lr_backbone_names) and not match_name_keywords(n, args.lr_linear_proj_names) and not match_name_keywords(n, args.lr_backbone_names) and p.requires_grad],
             "lr": args.lr,
         },
         {
@@ -209,6 +211,7 @@ def main(args):
             "lr": args.lr * args.lr_linear_proj_mult,
         }
     ]
+
     if args.sgd:
         optimizer = torch.optim.SGD(param_dicts, lr=args.lr, momentum=0.9,
                                     weight_decay=args.weight_decay)
@@ -284,9 +287,9 @@ def main(args):
             model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
-            checkpoint_paths = [output_dir / 'checkpoint.pth']
+            checkpoint_paths = [output_dir / 'mDETD_0.pth']
             # extra checkpoint before LR drop and every 5 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 5 == 0:
+            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 50 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
@@ -326,160 +329,9 @@ def main(args):
     print('Training time {}'.format(total_time_str))
 
 
-# if __name__ == '__main__':
-#     parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
-#     args = parser.parse_args()
-#     if args.output_dir:
-#         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-#     main(args)
-
-
 if __name__ == '__main__':
-    # model = models_vit.__dict__['vit_base_patch16'](
-    #     drop_path_rate=0.1,
-    #     in_chans=3,
-    #     img_size=1333
-    # )
-
-    # checkpoint = torch.load("./pre-trained checkpoints/mae_pretrain_vit_base.pth", map_location='cpu')
-
-    # print("Load pre-trained checkpoint from: %s" % "./pre-trained checkpoints/mae_pretrain_vit_base.pth")
-    # checkpoint_model = checkpoint['model']
-    # state_dict = model.state_dict()
-    # for k in ['head.weight', 'head.bias']:
-    #     if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
-    #         print(f"Removing key {k} from pretrained checkpoint")
-    #         del checkpoint_model[k]
-
-    # interpolate position embedding
-    # interpolate_pos_embed(model, checkpoint_model)
-
-    # load pre-trained model
-    # msg = model.load_state_dict(checkpoint_model, strict=False)
-    # print(model)
-    # trunc_normal_(model.head.weight, std=2e-5)
-
-    # model_without_ddp = model
-    # n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    # print('number of params:', n_parameters)
-
-    # for _, block in enumerate(model_without_ddp.blocks):
-    #     if _ < 8:
-    #         for param in block.parameters():
-    #             param.requires_grad = False
-
-    # for n, p in model_without_ddp.named_parameters():
-    #     if p.requires_grad:
-    #         print(n)
-
-    parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
+    parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
-    utils.init_distributed_mode(args)
-
-    model, criterion, postprocessors = build_model(args)
-    model.to('cuda:0')
-
-    dataset_train = build_dataset(image_set='train', args=args)
-    dataset_val = build_dataset(image_set='val', args=args)
-
-    if args.distributed:
-        if args.cache_mode:
-            sampler_train = samplers.NodeDistributedSampler(dataset_train)
-            sampler_val = samplers.NodeDistributedSampler(dataset_val, shuffle=False)
-        else:
-            sampler_train = samplers.DistributedSampler(dataset_train)
-            sampler_val = samplers.DistributedSampler(dataset_val, shuffle=False)
-    else:
-        sampler_train = torch.utils.data.RandomSampler(dataset_train)
-        sampler_val = torch.utils.data.SequentialSampler(dataset_val)
-
-    batch_sampler_train = torch.utils.data.BatchSampler(
-        sampler_train, args.batch_size, drop_last=True)
-
-    data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
-                                   collate_fn=utils.collate_fn, num_workers=args.num_workers,
-                                   pin_memory=True)
-    data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
-                                 drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers,
-                                 pin_memory=True)
-    
-    prefetcher = data_prefetcher(data_loader_train, 'cuda:0', prefetch=True)
-    samples, targets = prefetcher.next()
-
-    model.to('cuda:0')
-    for n, p in model.named_parameters():
-        print(n)
-    # outs = model(samples)
-    # print(outs)
-
-# if __name__ == '__main__':
-#     model = models_vit.__dict__['vit_base_patch16'](
-#         drop_path_rate=0.1,
-#         in_chans=3
-#     )
-
-#     checkpoint = torch.load("./pre-trained checkpoints/mae_pretrain_vit_base.pth", map_location='cpu')
-
-#     print("Load pre-trained checkpoint from: %s" % "./pre-trained checkpoints/mae_pretrain_vit_base.pth")
-#     checkpoint_model = checkpoint['model']
-#     state_dict = model.state_dict()
-#     for k in ['head.weight', 'head.bias']:
-#         if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
-#             print(f"Removing key {k} from pretrained checkpoint")
-#             del checkpoint_model[k]
-
-#     # interpolate position embedding
-#     interpolate_pos_embed(model, checkpoint_model)
-
-#     # load pre-trained model
-#     msg = model.load_state_dict(checkpoint_model, strict=False)
-#     # print(model)
-#     # trunc_normal_(model.head.weight, std=2e-5)
-
-#     model_without_ddp = model
-#     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-#     # print('number of params:', n_parameters)
-
-#     for _, block in enumerate(model_without_ddp.blocks):
-#         if _ < 8:
-#             for param in block.parameters():
-#                 param.requires_grad = False
-
-#     for n, p in model_without_ddp.named_parameters():
-#         if p.requires_grad:
-#             print(n)
-
-#     parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
-#     args = parser.parse_args()
-#     utils.init_distributed_mode(args)
-
-#     dataset_train = build_dataset(image_set='train', args=args)
-#     dataset_val = build_dataset(image_set='val', args=args)
-
-#     if args.distributed:
-#         if args.cache_mode:
-#             sampler_train = samplers.NodeDistributedSampler(dataset_train)
-#             sampler_val = samplers.NodeDistributedSampler(dataset_val, shuffle=False)
-#         else:
-#             sampler_train = samplers.DistributedSampler(dataset_train)
-#             sampler_val = samplers.DistributedSampler(dataset_val, shuffle=False)
-#     else:
-#         sampler_train = torch.utils.data.RandomSampler(dataset_train)
-#         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
-
-#     batch_sampler_train = torch.utils.data.BatchSampler(
-#         sampler_train, args.batch_size, drop_last=True)
-
-#     data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
-#                                    collate_fn=utils.collate_fn, num_workers=args.num_workers,
-#                                    pin_memory=True)
-#     data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
-#                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers,
-#                                  pin_memory=True)
-    
-#     prefetcher = data_prefetcher(data_loader_train, 'cuda:0', prefetch=True)
-#     samples, targets = prefetcher.next()
-
-#     model.to('cuda:0')
-#     outs = model(samples.tensors)
-#     print(outs)
+    if args.output_dir:
+        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    main(args)
