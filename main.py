@@ -285,32 +285,32 @@ def main(args):
             lr_scheduler.step(lr_scheduler.last_epoch)
             args.start_epoch = checkpoint['epoch'] + 1
         # check the resumed model
-        if not args.eval:
-            test_stats, coco_evaluator = evaluate(
-                model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
-            )
+        # if not args.eval:
+        #     test_stats, coco_evaluator = evaluate(
+        #         model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
+        #     )
 
-    # print("Start training")
-    # start_time = time.time()
-    # for epoch in range(args.start_epoch, args.epochs):
-    #     if args.distributed:
-    #         sampler_train.set_epoch(epoch)
-    #     train_stats = train_one_epoch(
-    #         model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
-    #     lr_scheduler.step()
-    #     if args.output_dir:
-    #         checkpoint_paths = [output_dir / 'mDETD_0.pth']
-    #         # extra checkpoint before LR drop and every 5 epochs
-    #         if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
-    #             checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
-    #         for checkpoint_path in checkpoint_paths:
-    #             utils.save_on_master({
-    #                 'model': model_without_ddp.state_dict(),
-    #                 'optimizer': optimizer.state_dict(),
-    #                 'lr_scheduler': lr_scheduler.state_dict(),
-    #                 'epoch': epoch,
-    #                 'args': args,
-    #             }, checkpoint_path)
+    print("Start training")
+    start_time = time.time()
+    for epoch in range(args.start_epoch, args.epochs):
+        if args.distributed:
+            sampler_train.set_epoch(epoch)
+        train_stats = train_one_epoch(
+            model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
+        lr_scheduler.step()
+        if args.output_dir:
+            checkpoint_paths = [output_dir / 'mDETD_0.pth']
+            # extra checkpoint before LR drop and every 5 epochs
+            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
+                checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
+            for checkpoint_path in checkpoint_paths:
+                utils.save_on_master({
+                    'model': model_without_ddp.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'lr_scheduler': lr_scheduler.state_dict(),
+                    'epoch': epoch,
+                    'args': args,
+                }, checkpoint_path)
 
         # test_stats, coco_evaluator = evaluate(
         #     model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
@@ -336,9 +336,9 @@ def main(args):
         #                 torch.save(coco_evaluator.coco_eval["bbox"].eval,
         #                            output_dir / "eval" / name)
 
-    # total_time = time.time() - start_time
-    # total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-    # print('Training time {}'.format(total_time_str))
+    total_time = time.time() - start_time
+    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
+    print('Training time {}'.format(total_time_str))
 
     # if args.eval:
     #     test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
