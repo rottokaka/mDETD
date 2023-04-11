@@ -40,7 +40,7 @@ def get_args_parser():
     parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=100, type=int)
-    parser.add_argument('--lr_drop', default=40, type=int)
+    parser.add_argument('--lr_drop', default=100, type=int)
     parser.add_argument('--lr_drop_epochs', default=None, type=int, nargs='+')
     parser.add_argument('--clip_max_norm', default=0.1, type=float,
                         help='gradient clipping max norm')
