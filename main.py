@@ -133,8 +133,8 @@ def get_args_parser():
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     # parser.add_argument('--resume', default='', help='resume from checkpoint')
-    # parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
-    parser.add_argument('--resume', default='/kaggle/working/mDETD_1.pth', help='resume from checkpoint')
+    parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='/kaggle/working/mDETD_1.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_0.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_1.pth', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
@@ -373,7 +373,7 @@ if __name__ == '__main__':
 #     model_dict.update(pretrained_dict) 
 #     # 3. load the new state dict
 #     model.load_state_dict(model_dict)
-# #     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_1.pth')
+#     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_0.pth')
 
 
     

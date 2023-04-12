@@ -638,8 +638,9 @@ def build(args):
 
     backbone = build_backbone(args)
 
-    transformer = build_vit_deforamble_transformer_full(args)
-    model = ViTDeformableDETRFull(
+    transformer = build_vit_deforamble_transformer(args)
+    # transformer = build_vit_deforamble_transformer_full(args)
+    model = ViTDeformableDETR(
         backbone,
         transformer,
         num_classes=num_classes,
@@ -647,6 +648,14 @@ def build(args):
         num_feature_levels=args.num_feature_levels,
         aux_loss=args.aux_loss
     )
+    # model = ViTDeformableDETRFull(
+    #     backbone,
+    #     transformer,
+    #     num_classes=num_classes,
+    #     num_queries=args.num_queries,
+    #     num_feature_levels=args.num_feature_levels,
+    #     aux_loss=args.aux_loss
+    # )
     if args.masks:
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
     matcher = build_matcher(args)
