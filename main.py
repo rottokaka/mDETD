@@ -32,7 +32,7 @@ import torchvision
 
 def get_args_parser():
     parser = argparse.ArgumentParser('ViT Deformable DETR Detector', add_help=False)
-    parser.add_argument('--lr', default=1e-5, type=float)
+    parser.add_argument('--lr', default=2e-5, type=float)
     parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
     parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
@@ -368,12 +368,12 @@ if __name__ == '__main__':
 #     model_dict = model.state_dict()
 
 #     # 1. filter out unnecessary keys
-#     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+#     pretrained_dict = {k: v for k, v in pretrained_dict['model'].items() if k in model_dict}
 #     # 2. overwrite entries in the existing state dict
 #     model_dict.update(pretrained_dict) 
 #     # 3. load the new state dict
 #     model.load_state_dict(model_dict)
-#     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_1.pth')
+# #     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_1.pth')
 
 
     
