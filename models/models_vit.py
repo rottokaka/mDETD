@@ -18,7 +18,6 @@ import torchvision
 import torch.nn.functional as F
 
 import timm.models.vision_transformer
-from timm.models.vision_transformer import HybridEmbed, PatchEmbed
 
 from util.misc import NestedTensor, is_main_process
 
@@ -35,12 +34,17 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         self.simple_fpn = torchvision.ops.FeaturePyramidNetwork([768,768,768,768], 256)
         self.norm_ = nn.LayerNorm(256)
         self.linear_ = nn.Linear(768, 256)
+        self.origin_size = [kwargs['img_size'], kwargs['img_size']]
+        self._init_patch_embed()
 
-    def _init_patch_embed(self, img_size):
+    def _init_patch_embed(self):
         self.patch_embed = PatchEmbed(
-            img_size=img_size, patch_size=16, in_chans=3, embed_dim=768)
-        num_patches = self.patch_embed.num_patches
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
+            img_size=224, patch_size=16, in_chans=3, embed_dim=768)
+        # num_patches = self.patch_embed.num_patches
+        # self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
+
+    # def _interpolate_pos_embed(self, img_size):
+    #     if self.origin_size != img_size
 
     def forward_features(self, tensor_list: NestedTensor, position_embedding, position_embedding_):#: NestedTensor):
         x = tensor_list.tensors
@@ -82,11 +86,32 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         return xs, masks, pos_embeds
     
     def forward(self, tensor_list: NestedTensor, position_embedding, position_embedding_):
-        # self._init_patch_embed(tensor_list.tensors.shape[2:])
-        # self._init_patch_embed(224)
         self.to('cuda:0')
         xs, masks, pos_embeds = self.forward_features(tensor_list, position_embedding, position_embedding_)
         return xs, masks, pos_embeds
+    
+class PatchEmbed(nn.Module):
+    """ Image to Patch Embedding
+    """
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
+        super().__init__()
+        if isinstance(img_size, int):
+            img_size = (img_size, img_size)
+        patch_size = (patch_size, patch_size)
+        num_patches = (img_size[1] // patch_size[1]) * (img_size[0] // patch_size[0])
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.num_patches = num_patches
+
+        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+        # # FIXME look at relaxing size constraints
+        # assert H == self.img_size[0] and W == self.img_size[1], \
+        #     f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
+        x = self.proj(x).flatten(2).transpose(1, 2)
+        return x
 
 
 def vit_base_patch16(**kwargs):
