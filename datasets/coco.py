@@ -142,7 +142,7 @@ def make_coco_transforms(image_set):
                     T.RandomResize(scales, max_size=1000),
                 ])
             ),
-            # T.Resize((512,512), interpolation=PIL.Image.BICUBIC),
+            # T.Resize((224,224), interpolation=PIL.Image.BICUBIC),
             normalize,
         ])
 

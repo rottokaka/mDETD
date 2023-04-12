@@ -40,8 +40,8 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
     def _init_patch_embed(self):
         self.patch_embed = PatchEmbed(
             img_size=224, patch_size=16, in_chans=3, embed_dim=768)
-        # num_patches = self.patch_embed.num_patches
-        # self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
+        num_patches = self.patch_embed.num_patches
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
 
     # def _interpolate_pos_embed(self, img_size):
     #     if self.origin_size != img_size

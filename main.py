@@ -32,9 +32,9 @@ import torchvision
 
 def get_args_parser():
     parser = argparse.ArgumentParser('ViT Deformable DETR Detector', add_help=False)
-    parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--lr', default=1e-5, type=float)
     parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
-    parser.add_argument('--lr_backbone', default=1e-4, type=float)
+    parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
     parser.add_argument('--batch_size', default=1, type=int)
@@ -132,8 +132,11 @@ def get_args_parser():
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
-    parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
+    parser.add_argument('--resume', default='/kaggle/working/mDETD_1.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_0.pth', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_1.pth', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
@@ -299,7 +302,7 @@ def main(args):
             model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
-            checkpoint_paths = [output_dir / 'mDETD_0.pth']
+            checkpoint_paths = [output_dir / 'mDETD_1.pth']
             # extra checkpoint before LR drop and every 5 epochs
             if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
@@ -370,7 +373,7 @@ if __name__ == '__main__':
 #     model_dict.update(pretrained_dict) 
 #     # 3. load the new state dict
 #     model.load_state_dict(model_dict)
-#     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_0.pth')
+#     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_1.pth')
 
 
     
