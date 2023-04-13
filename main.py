@@ -363,7 +363,10 @@ def main(args):
 
 
 if __name__ == '__main__':
-    mode, version = input().split()
+    with open('../input.txt') as f:
+        line = f.readline()
+        mode, version = line.split()
+    f.close()
     parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser(mode, version)])
     args = parser.parse_args()
     if args.output_dir:
