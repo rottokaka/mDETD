@@ -102,7 +102,8 @@ class ViTBackbone(nn.Module):
             backbone = models_vit.__dict__['vit_base_patch16'](
                 drop_path_rate=0.1,
                 in_chans=3,
-                img_size=512
+                img_size=512,
+                use_simple_fpn = args.use_simple_fpn
             )
             if args.pretrained_backbone_path:
                 checkpoint = torch.load(args.pretrained_backbone_path, map_location='cpu')

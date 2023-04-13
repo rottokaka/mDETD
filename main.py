@@ -59,6 +59,8 @@ def get_args_parser():
     # * Backbone
     parser.add_argument('--poor', default=True, action='store_true',
                         help="This will freeze parameters of first 8 block of vit")
+    parser.add_argument('--use_simple_fpn', default=True, action='store_true',
+                        help="Determine if simple fpn is used") 
     parser.add_argument('--backbone', default='vit_base_patch16', type=str,
                         help="Name of the convolutional backbone to use")
     parser.add_argument('--pretrained_backbone_path', default='', type=str,
@@ -133,10 +135,12 @@ def get_args_parser():
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     # parser.add_argument('--resume', default='', help='resume from checkpoint')
-    parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='/kaggle/working/mDETD_1.pth', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='/kaggle/working/mDETD_2.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_0.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_1.pth', help='resume from checkpoint')
+    parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_2.pth', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
@@ -302,7 +306,7 @@ def main(args):
             model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
-            checkpoint_paths = [output_dir / 'mDETD_1.pth']
+            checkpoint_paths = [output_dir / 'mDETD_2.pth']
             # extra checkpoint before LR drop and every 1 epochs
             if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
@@ -373,7 +377,7 @@ if __name__ == '__main__':
 #     model_dict.update(pretrained_dict) 
 #     # 3. load the new state dict
 #     model.load_state_dict(model_dict)
-#     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_0.pth')
+#     torch.save(model.state_dict(), 'pre-trained checkpoints/mDETD_2.pth')
 
 
     
