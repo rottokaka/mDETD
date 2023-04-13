@@ -122,7 +122,11 @@ class ConvertCocoPolysToMask(object):
         return image, target
 
 
-def make_coco_transforms(image_set):
+def make_coco_transforms(image_set, version):
+    if version == "2":
+        max_size = 800
+    else:
+        max_size = 1000
 
     normalize = T.Compose([
         T.ToTensor(),
@@ -135,11 +139,11 @@ def make_coco_transforms(image_set):
         return T.Compose([
             T.RandomHorizontalFlip(),
             T.RandomSelect(
-                T.RandomResize(scales, max_size=1000),
+                T.RandomResize(scales, max_size=max_size),
                 T.Compose([
                     T.RandomResize([400, 500, 600]),
                     T.RandomSizeCrop(384, 600),
-                    T.RandomResize(scales, max_size=1000),
+                    T.RandomResize(scales, max_size=max_size),
                 ])
             ),
             # T.Resize((224,224), interpolation=PIL.Image.BICUBIC),
@@ -148,7 +152,7 @@ def make_coco_transforms(image_set):
 
     if image_set == 'val':
         return T.Compose([
-            T.RandomResize([800], max_size=1000),
+            T.RandomResize([800], max_size=max_size),
             normalize,
         ])
 
@@ -165,7 +169,7 @@ def build(image_set, args):
     }
 
     img_folder, ann_file = PATHS[image_set]
-    dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set), return_masks=args.masks,
+    dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set, args.version), return_masks=args.masks,
                             cache_mode=args.cache_mode, local_rank=get_local_rank(), local_size=get_local_size())
     return dataset
 
@@ -177,6 +181,6 @@ def build_mini_coco(image_set, args):
     }
 
     img_folder, ann_file = PATHS[image_set]
-    dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set), return_masks=args.masks,
+    dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set, args.version), return_masks=args.masks,
                             cache_mode=args.cache_mode, local_rank=get_local_rank(), local_size=get_local_size())
     return dataset
