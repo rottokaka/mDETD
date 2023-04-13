@@ -30,8 +30,10 @@ from datasets.data_prefetcher import data_prefetcher
 import torchvision
 
 
-def get_args_parser():
+def get_args_parser(mode="debug", version="0"):
     parser = argparse.ArgumentParser('ViT Deformable DETR Detector', add_help=False)
+    parser.add_argument('--mode', default=mode, type=str)
+    parser.add_argument('--version', default=version, type=str)
     parser.add_argument('--lr', default=2e-5, type=float)
     parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
     parser.add_argument('--lr_backbone', default=2e-4, type=float)
@@ -59,8 +61,12 @@ def get_args_parser():
     # * Backbone
     parser.add_argument('--poor', default=True, action='store_true',
                         help="This will freeze parameters of first 8 block of vit")
-    parser.add_argument('--use_simple_fpn', default=True, action='store_true',
-                        help="Determine if simple fpn is used") 
+    if version == "2":
+        parser.add_argument('--use_simple_fpn', default=True, action='store_true',
+                            help="Determine if simple fpn is used") 
+    elif version == "1" or version == "0":
+        parser.add_argument('--use_simple_fpn', default=False, action='store_true',
+                            help="Determine if simple fpn is used") 
     parser.add_argument('--backbone', default='vit_base_patch16', type=str,
                         help="Name of the convolutional backbone to use")
     parser.add_argument('--pretrained_backbone_path', default='', type=str,
@@ -76,8 +82,6 @@ def get_args_parser():
     parser.add_argument('--num_feature_levels', default=4, type=int, help='number of feature levels')
 
     # * Transformer
-    # parser.add_argument('--pretrained_decoder_path', default='./pre-trained checkpoints/full_coco_finetune.pth', type=str,
-    #                     help="Path to the pretrained decoder")
     parser.add_argument('--enc_layers', default=6, type=int,
                         help="Number of encoding layers in the transformer")
     parser.add_argument('--dec_layers', default=6, type=int,
@@ -120,7 +124,10 @@ def get_args_parser():
     parser.add_argument('--focal_alpha', default=0.25, type=float)
 
     # dataset parameters
-    parser.add_argument('--dataset_file', default='minicoco')
+    if mode=="debug":
+        parser.add_argument('--dataset_file', default='coco')
+    elif mode=="train":
+        parser.add_argument('--dataset_file', default='minicoco')
     parser.add_argument('--coco_path', default='detr//datasets//', type=str)
     parser.add_argument('--mini_coco_path_train_img', default='/kaggle/input/coco25k/images', type=str)
     parser.add_argument('--mini_coco_path_train_ann', default='/kaggle/input/minicoco-annotations/instances_minitrain2017.json', type=str)
@@ -135,12 +142,11 @@ def get_args_parser():
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     # parser.add_argument('--resume', default='', help='resume from checkpoint')
-    # parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
-    # parser.add_argument('--resume', default='/kaggle/working/mDETD_1.pth', help='resume from checkpoint')
-    parser.add_argument('--resume', default='/kaggle/working/mDETD_2.pth', help='resume from checkpoint')
-    # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_0.pth', help='resume from checkpoint')
-    # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_1.pth', help='resume from checkpoint')
-    # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_2.pth', help='resume from checkpoint')
+    if mode == "train":
+        parser.add_argument('--resume', default='/kaggle/working/mDETD_'+version+'.pth', help='resume from checkpoint')
+    elif mode == "debug":
+        parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_'+version+'.pth', help='resume from checkpoint')
+        # parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
@@ -306,7 +312,8 @@ def main(args):
             model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
-            checkpoint_paths = [output_dir / 'mDETD_2.pth']
+            checkpoint_name = 'mDETD_'+args.version+'.pth'
+            checkpoint_paths = [output_dir / checkpoint_name]
             # extra checkpoint before LR drop and every 1 epochs
             if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
@@ -356,14 +363,15 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser()])
+    mode, version = input().split()
+    parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser(mode, version)])
     args = parser.parse_args()
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
 
 # if __name__ == '__main__':
-#     parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser()])
+#     parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser("debug", "2")])
 #     args = parser.parse_args()
 #     if args.output_dir:
 #         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
