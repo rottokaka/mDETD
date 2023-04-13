@@ -166,10 +166,10 @@ class SimpleFPN(torchvision.ops.FeaturePyramidNetwork):
         for in_channels in in_channels_list:
             if in_channels == 0:
                 raise ValueError("in_channels=0 is currently not supported")
-            simple_block_module_0 = nn.Conv2d(in_channels, out_channels, 1, 4)
-            simple_block_module_1 = nn.Conv2d(in_channels, out_channels, 1, 2)
+            simple_block_module_0 = nn.Conv2d(in_channels, out_channels, 4, 4)
+            simple_block_module_1 = nn.Conv2d(in_channels, out_channels, 2, 2)
             simple_block_module_2 = nn.Conv2d(in_channels, out_channels, 1, 1)
-            simple_block_module_3 = nn.ConvTranspose2d(in_channels, out_channels, 1, 2)
+            simple_block_module_3 = nn.ConvTranspose2d(in_channels, out_channels, 2, 2)
             self.simple_blocks_0.append(simple_block_module_0)
             self.simple_blocks_1.append(simple_block_module_1)
             self.simple_blocks_2.append(simple_block_module_2)

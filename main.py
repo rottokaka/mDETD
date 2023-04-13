@@ -141,7 +141,6 @@ def get_args_parser(mode="debug", version="0"):
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
-    # parser.add_argument('--resume', default='', help='resume from checkpoint')
     if mode == "train":
         parser.add_argument('--resume', default='/kaggle/working/mDETD_'+version+'.pth', help='resume from checkpoint')
     elif mode == "debug":
@@ -262,13 +261,13 @@ def main(args):
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
-        checkpoint_model = checkpoint['model']
+        checkpoint_model = checkpoint#['model']
         state_dict = model.state_dict()
         for k in ['backbone.backbone.pos_embed']:
             if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
                 del checkpoint_model[k]
         interpolate_pos_embed(model_without_ddp, checkpoint_model)
-        model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
+        model_without_ddp.load_state_dict(checkpoint, strict=False)#['model'], strict=False)
         # if args.poor:
         #     for _, block in enumerate(model.backbone.backbone.blocks):
         #         if _ < 6:
