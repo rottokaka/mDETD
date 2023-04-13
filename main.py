@@ -137,10 +137,10 @@ def get_args_parser():
     # parser.add_argument('--resume', default='', help='resume from checkpoint')
     # parser.add_argument('--resume', default='/kaggle/working/mDETD_0.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='/kaggle/working/mDETD_1.pth', help='resume from checkpoint')
-    # parser.add_argument('--resume', default='/kaggle/working/mDETD_2.pth', help='resume from checkpoint')
+    parser.add_argument('--resume', default='/kaggle/working/mDETD_2.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_0.pth', help='resume from checkpoint')
     # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_1.pth', help='resume from checkpoint')
-    parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_2.pth', help='resume from checkpoint')
+    # parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_2.pth', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
