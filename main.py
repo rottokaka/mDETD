@@ -36,7 +36,7 @@ def get_args_parser(mode="debug", version="0"):
     parser.add_argument('--version', default=version, type=str)
     parser.add_argument('--lr', default=2e-5, type=float)
     parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
-    parser.add_argument('--lr_backbone', default=2e-5, type=float)
+    parser.add_argument('--lr_backbone', default=1e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
     parser.add_argument('--batch_size', default=1, type=int)
