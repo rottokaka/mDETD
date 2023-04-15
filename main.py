@@ -129,10 +129,8 @@ def get_args_parser(mode="debug", version="0"):
     elif mode=="train":
         parser.add_argument('--dataset_file', default='minicoco')
     parser.add_argument('--coco_path', default='detr//datasets//', type=str)
-    # parser.add_argument('--mini_coco_path_train_img', default='/kaggle/input/coco25k/images', type=str)
-    # parser.add_argument('--mini_coco_path_train_ann', default='/kaggle/input/minicoco-annotations/instances_minitrain2017.json', type=str)
-    parser.add_argument('--mini_coco_path_train_img', default='/kaggle/input/coco-2017-dataset/coco2017/val2017', type=str)
-    parser.add_argument('--mini_coco_path_train_ann', default='/kaggle/input/coco-2017-dataset/coco2017/annotations/instances_val2017.json', type=str)
+    parser.add_argument('--mini_coco_path_train_img', default='/kaggle/input/coco25k/images', type=str)
+    parser.add_argument('--mini_coco_path_train_ann', default='/kaggle/input/minicoco-annotations/instances_minitrain2017.json', type=str)
     parser.add_argument('--mini_coco_path_val_img', default='/kaggle/input/coco-2017-dataset/coco2017/val2017', type=str)
     parser.add_argument('--mini_coco_path_val_ann', default='/kaggle/input/coco-2017-dataset/coco2017/annotations/instances_val2017.json', type=str)
     parser.add_argument('--coco_panoptic_path', type=str)
