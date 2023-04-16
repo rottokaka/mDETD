@@ -123,10 +123,10 @@ class ConvertCocoPolysToMask(object):
 
 
 def make_coco_transforms(image_set, version):
-    if version == "2":
-        max_size = 800
-    else:
+    if version == "0":
         max_size = 1000
+    else:
+        max_size = 800
 
     normalize = T.Compose([
         T.ToTensor(),
