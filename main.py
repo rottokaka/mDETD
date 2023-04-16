@@ -34,7 +34,7 @@ def get_args_parser(mode="debug", version="0"):
     parser = argparse.ArgumentParser('ViT Deformable DETR Detector', add_help=False)
     parser.add_argument('--mode', default=mode, type=str)
     parser.add_argument('--version', default=version, type=str)
-    parser.add_argument('--lr', default=2e-4, type=float)
+    parser.add_argument('--lr', default=2e-5, type=float)
     parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
     parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
@@ -261,13 +261,13 @@ def main(args):
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
-        checkpoint_model = checkpoint#['model']
+        checkpoint_model = checkpoint['model']
         state_dict = model.state_dict()
         for k in ['backbone.backbone.pos_embed']:
             if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
                 del checkpoint_model[k]
         interpolate_pos_embed(model_without_ddp, checkpoint_model)
-        model_without_ddp.load_state_dict(checkpoint, strict=False)#['model'], strict=False)
+        model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         # if args.poor:
         #     for _, block in enumerate(model.backbone.backbone.blocks):
         #         if _ < 6:
