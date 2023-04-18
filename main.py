@@ -59,7 +59,7 @@ def get_args_parser(mode="debug", version="0"):
                         help="Path to the pretrained model. If set, only the mask head will be trained")
 
     # * Backbone
-    parser.add_argument('--poor', default=False, action='store_true',
+    parser.add_argument('--poor', default=True, action='store_true',
                         help="This will freeze parameters of first 8 block of vit")
     if version == "2":
         parser.add_argument('--use_simple_fpn', default=True, action='store_true',
