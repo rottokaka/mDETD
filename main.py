@@ -268,10 +268,10 @@ def main(args):
                 del checkpoint_model[k]
         interpolate_pos_embed(model_without_ddp, checkpoint_model)
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        for _, block in enumerate(model.backbone.backbone.blocks):
-            if _ < 8:
-                for param in block.parameters():
-                    param.requires_grad = True
+        # for _, block in enumerate(model.backbone.backbone.blocks):
+        #     if _ < 8:
+        #         for param in block.parameters():
+        #             param.requires_grad = True
         # print(model)
         # unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
         # if len(missing_keys) > 0:
