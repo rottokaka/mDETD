@@ -268,10 +268,6 @@ def main(args):
                 del checkpoint_model[k]
         interpolate_pos_embed(model_without_ddp, checkpoint_model)
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        for _, block in enumerate(model.backbone.backbone.blocks):
-            if _ < 8:
-                for param in block.parameters():
-                    param.requires_grad = True
         # print(model)
         # unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
         # if len(missing_keys) > 0:
@@ -306,10 +302,18 @@ def main(args):
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             sampler_train.set_epoch(epoch)
+        for _, block in enumerate(model.backbone.backbone.blocks):
+            if _ < 8:
+                for param in block.parameters():
+                    param.requires_grad = True
         train_stats = train_one_epoch(
             model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
+            for _, block in enumerate(model.backbone.backbone.blocks):
+                if _ < 8:
+                    for param in block.parameters():
+                        param.requires_grad = False
             checkpoint_name = 'mDETD_'+args.version+'.pth'
             checkpoint_paths = [output_dir / checkpoint_name]
             # extra checkpoint before LR drop and every 1 epochs
