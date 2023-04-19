@@ -43,9 +43,9 @@ def measure_average_inference_time(model, inputs, num_iters=100, warm_iters=5):
     return sum(ts) / len(ts)
 
 
-def benchmark():
+def benchmark(mode, version):
     args, _ = get_benckmark_arg_parser().parse_known_args()
-    main_args = get_main_args_parser().parse_args(_)
+    main_args = get_main_args_parser(mode, version).parse_args(_)
     assert args.warm_iters < args.num_iters and args.num_iters > 0 and args.warm_iters >= 0
     assert args.batch_size > 0
     assert args.resume is None or os.path.exists(args.resume)
@@ -54,7 +54,7 @@ def benchmark():
     model.cuda()
     model.eval()
     if args.resume is not None:
-        ckpt = torch.load(args.resume, map_location=lambda storage, loc: storage)
+        ckpt = torch.load(main_args.resume, map_location=lambda storage, loc: storage)
         model.load_state_dict(ckpt['model'])
     inputs = nested_tensor_from_tensor_list([dataset.__getitem__(0)[0].cuda() for _ in range(args.batch_size)])
     t = measure_average_inference_time(model, inputs, args.num_iters, args.warm_iters)
@@ -62,6 +62,10 @@ def benchmark():
 
 
 if __name__ == '__main__':
-    fps = benchmark()
+    with open('../input.txt') as f:
+        line = f.readline()
+        mode, version = line.split()
+    f.close()
+    fps = benchmark(mode, version)
     print(f'Inference Speed: {fps:.1f} FPS')
 
