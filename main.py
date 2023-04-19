@@ -36,7 +36,7 @@ def get_args_parser(mode="debug", version="0"):
     parser.add_argument('--version', default=version, type=str)
     parser.add_argument('--lr', default=2e-5, type=float)
     parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
-    parser.add_argument('--lr_backbone', default=1e-4, type=float)
+    parser.add_argument('--lr_backbone', default=2e-4, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
     parser.add_argument('--batch_size', default=1, type=int)
@@ -268,10 +268,10 @@ def main(args):
                 del checkpoint_model[k]
         interpolate_pos_embed(model_without_ddp, checkpoint_model)
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        # for _, block in enumerate(model.backbone.backbone.blocks):
-        #     if _ < 8:
-        #         for param in block.parameters():
-        #             param.requires_grad = True
+        for _, block in enumerate(model.backbone.backbone.blocks):
+            if _ < 8:
+                for param in block.parameters():
+                    param.requires_grad = True
         # print(model)
         # unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
         # if len(missing_keys) > 0:
