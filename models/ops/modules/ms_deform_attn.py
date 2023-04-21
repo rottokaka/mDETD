@@ -113,4 +113,4 @@ class MSDeformAttn(nn.Module):
             value, input_spatial_shapes, input_level_start_index, sampling_locations, attention_weights, self.im2col_step)
         # output = ms_deform_attn_core_pytorch(value, input_spatial_shapes, sampling_locations, attention_weights)
         output = self.output_proj(output)
-        return output, attention_weights
+        return output, attention_weights, sampling_locations
