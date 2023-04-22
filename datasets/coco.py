@@ -185,3 +185,15 @@ def build_mini_coco(image_set, args):
     dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set, args.version), return_masks=args.masks,
                             cache_mode=args.cache_mode, local_rank=get_local_rank(), local_size=get_local_size())
     return dataset
+
+def build_chvg(image_set, args):
+    mode = 'instances'
+    PATHS = {
+        "train": (args.chvg_path_train_img, args.chvg_path_train_ann),
+        "val": (args.chvg_path_val_img, args.chvg_path_val_ann),
+    }
+
+    img_folder, ann_file = PATHS[image_set]
+    dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set, args.version), return_masks=args.masks,
+                            cache_mode=args.cache_mode, local_rank=get_local_rank(), local_size=get_local_size())
+    return dataset

@@ -36,7 +36,7 @@ def get_args_parser(mode="debug", version="0"):
     parser.add_argument('--version', default=version, type=str)
     parser.add_argument('--lr', default=1e-5, type=float)
     parser.add_argument('--lr_backbone_names', default=["backbone.backbone"], type=str, nargs='+')
-    parser.add_argument('--lr_backbone', default=2e-5, type=float)
+    parser.add_argument('--lr_backbone', default=1e-5, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
     parser.add_argument('--batch_size', default=1, type=int)
@@ -124,15 +124,28 @@ def get_args_parser(mode="debug", version="0"):
     parser.add_argument('--focal_alpha', default=0.25, type=float)
 
     # dataset parameters
-    if mode=="debug":
+    if mode == "debug":
         parser.add_argument('--dataset_file', default='coco')
-    elif mode=="train":
+    elif mode == "train" or mode == "val":
         parser.add_argument('--dataset_file', default='minicoco')
+    elif mode == "finetune" or mode == "finetune0" or mode == "finetune1" or mode == "finetune2":
+        parser.add_argument('--dataset_file', default='chvg')
     parser.add_argument('--coco_path', default='detr//datasets//', type=str)
     parser.add_argument('--mini_coco_path_train_img', default='/kaggle/input/coco25k/images', type=str)
     parser.add_argument('--mini_coco_path_train_ann', default='/kaggle/input/minicoco-annotations/instances_minitrain2017.json', type=str)
     parser.add_argument('--mini_coco_path_val_img', default='/kaggle/input/coco-2017-dataset/coco2017/val2017', type=str)
     parser.add_argument('--mini_coco_path_val_ann', default='/kaggle/input/coco-2017-dataset/coco2017/annotations/instances_val2017.json', type=str)
+    parser.add_argument('--chvg_path_train_img', default='/kaggle/input/chvg-coco-format/CHVG_Coco_arg1/train2017', type=str)
+    parser.add_argument('--chvg_path_train_ann', default='/kaggle/input/chvg-coco-format/CHVG_Coco_arg1/annotations/instances_train2017.json', type=str)
+    if mode == "finetune":
+        parser.add_argument('--chvg_path_val_img', default='/kaggle/input/chvg-coco-format/CHVG_Coco_arg1/test2017', type=str)
+    elif mode == "finetune0":
+        parser.add_argument('--chvg_path_val_img', default='/kaggle/input/chvg-coco-format/CHVG_Coco_arg1/test2017_low_light', type=str)
+    elif mode == "finetune1":
+        parser.add_argument('--chvg_path_val_img', default='/kaggle/input/chvg-coco-format/CHVG_Coco_arg1/test2017_haze', type=str)
+    elif mode == "finetune2":
+        parser.add_argument('--chvg_path_val_img', default='/kaggle/input/chvg-coco-format/CHVG_Coco_arg1/test2017_rain', type=str)
+    parser.add_argument('--chvg_path_val_ann', default='/kaggle/input/chvg-coco-format/CHVG_Coco_arg1/annotations/instances_test2017.json', type=str)
     parser.add_argument('--coco_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
 
@@ -141,7 +154,7 @@ def get_args_parser(mode="debug", version="0"):
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
-    if mode == "train":
+    if mode == "train" or mode == "val" or mode == "finetune" or mode == "finetune0" or mode == "finetune1" or mode == "finetune2":
         parser.add_argument('--resume', default='/kaggle/working/mDETD_'+version+'.pth', help='resume from checkpoint')
     elif mode == "debug":
         parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_'+version+'.pth', help='resume from checkpoint')
@@ -158,6 +171,8 @@ def get_args_parser(mode="debug", version="0"):
 def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
+    mode = args.mode
+    version = args.version
 
     if args.frozen_weights is not None:
         assert args.masks, "Frozen training is meant for segmentation only"
@@ -296,72 +311,86 @@ def main(args):
         #     test_stats, coco_evaluator = evaluate(
         #         model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
         #     )
-
-    print("Start training")
-    start_time = time.time()
-    for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
-            sampler_train.set_epoch(epoch)
-        for _, block in enumerate(model.backbone.backbone.blocks):
-            if _ < 8:
-                for param in block.parameters():
-                    param.requires_grad = True
-        train_stats = train_one_epoch(
-            model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
-        lr_scheduler.step()
-        if args.output_dir:
+    if mode == "train" or mode == "finetune" or mode == "debug":
+        print("Start training")
+        start_time = time.time()
+        for epoch in range(args.start_epoch, args.epochs):
+            if args.distributed:
+                sampler_train.set_epoch(epoch)
             for _, block in enumerate(model.backbone.backbone.blocks):
                 if _ < 8:
                     for param in block.parameters():
+                        param.requires_grad = True
+            if mode == "finetune":
+                for component in model.backbone:
+                    for param in component.parameters():
                         param.requires_grad = False
-            checkpoint_name = 'mDETD_'+args.version+'.pth'
-            checkpoint_paths = [output_dir / checkpoint_name]
-            # extra checkpoint before LR drop and every 1 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
-                checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
-            for checkpoint_path in checkpoint_paths:
-                utils.save_on_master({
-                    'model': model_without_ddp.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'lr_scheduler': lr_scheduler.state_dict(),
-                    'epoch': epoch,
-                    'args': args,
-                }, checkpoint_path)
+                if version != "0":
+                    for component in model.transformer.encoder:
+                        for param in component.parameters():
+                            param.requires_grad = False
+            train_stats = train_one_epoch(
+                model, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm)
+            lr_scheduler.step()
+            if args.output_dir:
+                if mode == "finetune":
+                    for component in model.backbone:
+                        for param in component.parameters():
+                            param.requires_grad = True
+                    if version != "0":
+                        for component in model.transformer.encoder:
+                            for param in component.parameters():
+                                param.requires_grad = True
+                for _, block in enumerate(model.backbone.backbone.blocks):
+                    if _ < 8:
+                        for param in block.parameters():
+                            param.requires_grad = False
+                checkpoint_name = 'mDETD_'+args.version+'.pth'
+                checkpoint_paths = [output_dir / checkpoint_name]
+                # extra checkpoint before LR drop and every 1 epochs
+                if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 1 == 0:
+                    checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
+                for checkpoint_path in checkpoint_paths:
+                    utils.save_on_master({
+                        'model': model_without_ddp.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'lr_scheduler': lr_scheduler.state_dict(),
+                        'epoch': epoch,
+                        'args': args,
+                    }, checkpoint_path)
 
-        # test_stats, coco_evaluator = evaluate(
-        #     model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
-        # )
+            # test_stats, coco_evaluator = evaluate(
+            #     model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
+            # )
 
-        # log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-        #              **{f'test_{k}': v for k, v in test_stats.items()},
-        #              'epoch': epoch,
-        #              'n_parameters': n_parameters}
+            # log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+            #              **{f'test_{k}': v for k, v in test_stats.items()},
+            #              'epoch': epoch,
+            #              'n_parameters': n_parameters}
 
-        # if args.output_dir and utils.is_main_process():
-        #     with (output_dir / "log.txt").open("a") as f:
-        #         f.write(json.dumps(log_stats) + "\n")
+            # if args.output_dir and utils.is_main_process():
+            #     with (output_dir / "log.txt").open("a") as f:
+            #         f.write(json.dumps(log_stats) + "\n")
 
-        #     # for evaluation logs
-        #     if coco_evaluator is not None:
-        #         (output_dir / 'eval').mkdir(exist_ok=True)
-        #         if "bbox" in coco_evaluator.coco_eval:
-        #             filenames = ['latest.pth']
-        #             if epoch % 1 == 0:
-        #                 filenames.append(f'{epoch:03}.pth')
-        #             for name in filenames:
-        #                 torch.save(coco_evaluator.coco_eval["bbox"].eval,
-        #                            output_dir / "eval" / name)
+            #     # for evaluation logs
+            #     if coco_evaluator is not None:
+            #         (output_dir / 'eval').mkdir(exist_ok=True)
+            #         if "bbox" in coco_evaluator.coco_eval:
+            #             filenames = ['latest.pth']
+            #             if epoch % 1 == 0:
+            #                 filenames.append(f'{epoch:03}.pth')
+            #             for name in filenames:
+            #                 torch.save(coco_evaluator.coco_eval["bbox"].eval,
+            #                            output_dir / "eval" / name)
 
-    total_time = time.time() - start_time
-    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-    print('Training time {}'.format(total_time_str))
+        total_time = time.time() - start_time
+        total_time_str = str(datetime.timedelta(seconds=int(total_time)))
+        print('Training time {}'.format(total_time_str))
 
-    # if args.eval:
-    #     test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
-    #                                           data_loader_val, base_ds, device, args.output_dir)
-    #     if args.output_dir:
-    #         utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
-    #     return
+    if mode == "val" or mode == "finetune" or mode == "debug" or mode == "finetune0" or mode == "finetune1" or mode == "finetune2":
+        test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
+                                              data_loader_val, base_ds, device, args.output_dir)
+    return        
 
 
 if __name__ == '__main__':
