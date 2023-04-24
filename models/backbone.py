@@ -263,7 +263,14 @@ class Joiner(nn.Sequential):
 
 
 def build_backbone(args):
-    position_embedding = build_position_encoding(args)
-    position_embedding_ = build_position_encoding_(args)
-    backbone = ViTBackbone(args, position_embedding, position_embedding_)
-    return backbone
+    if args.version != "3" and args.version != "4":
+        position_embedding = build_position_encoding(args)
+        position_embedding_ = build_position_encoding_(args)
+        model = ViTBackbone(args, position_embedding, position_embedding_)
+    else:
+        position_embedding = build_position_encoding(args)
+        train_backbone = args.lr_backbone > 0
+        return_interm_layers = args.masks or (args.num_feature_levels > 1)
+        backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation)
+        model = Joiner(backbone, position_embedding)
+    return model

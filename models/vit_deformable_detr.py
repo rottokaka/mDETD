@@ -631,9 +631,7 @@ class MLP(nn.Module):
 
 
 def build(args):
-    num_classes = 91
-    if args.dataset_file == "coco_panoptic":
-        num_classes = 250
+    num_classes = args.num_classes
     device = torch.device(args.device)
 
     backbone = build_backbone(args)
@@ -657,6 +655,18 @@ def build(args):
             num_queries=args.num_queries,
             num_feature_levels=args.num_feature_levels,
             aux_loss=args.aux_loss
+        )
+    else:
+        transformer = build_deforamble_transformer(args)
+        model = DeformableDETR(
+            backbone,
+            transformer,
+            num_classes=num_classes,
+            num_queries=args.num_queries,
+            num_feature_levels=args.num_feature_levels,
+            aux_loss=args.aux_loss,
+            with_box_refine=args.with_box_refine,
+            two_stage=args.two_stage,
         )
     if args.masks:
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))

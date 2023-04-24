@@ -64,11 +64,15 @@ def get_args_parser(mode="debug", version="0"):
     if version == "2":
         parser.add_argument('--use_simple_fpn', default=True, action='store_true',
                             help="Determine if simple fpn is used") 
-    elif version == "1" or version == "0":
+    else:
         parser.add_argument('--use_simple_fpn', default=False, action='store_true',
                             help="Determine if simple fpn is used") 
-    parser.add_argument('--backbone', default='vit_base_patch16', type=str,
-                        help="Name of the convolutional backbone to use")
+    if version == "3" or version == "4":
+        parser.add_argument('--backbone', default='resnet50', type=str,
+                            help="Name of the backbone to use")
+    else:
+        parser.add_argument('--backbone', default='vit_base_patch16', type=str,
+                            help="Name of the backbone to use")
     parser.add_argument('--pretrained_backbone_path', default='', type=str,
                         help="Path to the pretrained backbone")
     # parser.add_argument('--pretrained_backbone_path', default='./pre-trained checkpoints/mae_pretrain_vit_base.pth', type=str,
@@ -128,8 +132,12 @@ def get_args_parser(mode="debug", version="0"):
         parser.add_argument('--dataset_file', default='coco')
     elif mode == "train" or mode == "val":
         parser.add_argument('--dataset_file', default='minicoco')
-    elif mode == "finetune" or mode == "finetune0" or mode == "finetune1" or mode == "finetune2":
+    else:
         parser.add_argument('--dataset_file', default='chvg')
+    if mode == "demo":
+        parser.add_argument('--num_classes', default=9, type=int)
+    else:
+        parser.add_argument('--num_classes', default=91, type=int)
     parser.add_argument('--coco_path', default='detr//datasets//', type=str)
     parser.add_argument('--mini_coco_path_train_img', default='/kaggle/input/coco25k/images', type=str)
     parser.add_argument('--mini_coco_path_train_ann', default='/kaggle/input/minicoco-annotations/instances_minitrain2017.json', type=str)
@@ -157,8 +165,29 @@ def get_args_parser(mode="debug", version="0"):
     if mode == "train" or mode == "val" or mode == "finetune" or mode == "finetune0" or mode == "finetune1" or mode == "finetune2":
         parser.add_argument('--resume', default='/kaggle/working/mDETD_'+version+'.pth', help='resume from checkpoint')
     elif mode == "debug":
-        parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_'+version+'.pth', help='resume from checkpoint')
+        if version == "3":
+            parser.add_argument('--resume', default='pre-trained checkpoints/r50_deformable_detr-checkpoint.pth', help='resume from checkpoint')
+        elif version == "4":
+            parser.add_argument('--resume', default='pre-trained checkpoints/full_coco_finetune.pth', help='resume from checkpoint')
+        else:
+            parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_'+version+'.pth', help='resume from checkpoint')
         # parser.add_argument('--resume', default='', help='resume from checkpoint')
+    elif mode == "demo":
+        # model_0
+        if version == "0":
+            parser.add_argument('--resume', default='', help='resume from checkpoint')
+        # model_1
+        elif version == "1":
+            parser.add_argument('--resume', default='', help='resume from checkpoint')
+        # model_2
+        elif version == "2":
+            parser.add_argument('--resume', default='', help='resume from checkpoint')
+        # DDETR
+        elif version == "3":
+            parser.add_argument('--resume', default='', help='resume from checkpoint')
+        # DETReg
+        elif version == "4":
+            parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
