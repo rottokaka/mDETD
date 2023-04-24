@@ -63,7 +63,7 @@ def get_results(pil_img, prob, boxes):
         text = f'{CLASSES[cl]}: {p[cl]:0.2f}'
     return text
 
-parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser("debug", "0")])
+parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser("debug", "2")])
 args = parser.parse_args()
 
 app = Flask(__name__)
@@ -93,17 +93,18 @@ def predict():
     img = transform(im).unsqueeze(0)
 
     # propagate through the model
-    # outputs = model([img.squeeze().to('cuda:0')])
+    with torch.no_grad():
+        outputs = model([img.squeeze().to('cuda:0')])
 
     # # keep only predictions with 0.7+ confidence
-    # probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
-    # keep = probas.max(-1).values >= min(torch.topk(probas.max(-1).values,1).values).item()
+    probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
+    keep = probas.max(-1).values >= min(torch.topk(probas.max(-1).values,1).values).item()
 
     # # convert boxes from [0; 1] to image scales
-    # bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep].to('cpu'), im.size)
+    bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep].to('cpu'), im.size)
 
-    # text = get_results(im, probas[keep], bboxes_scaled)
-    return render_template('index.html', prediction="lol")
+    text = get_results(im, probas[keep], bboxes_scaled)
+    return render_template('index.html', prediction=text)
 
 if __name__ == '__main__':
     app.run(port=3000, debug=True)
