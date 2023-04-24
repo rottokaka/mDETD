@@ -63,18 +63,19 @@ def get_results(pil_img, prob, boxes):
         text = f'{CLASSES[cl]}: {p[cl]:0.2f}'
     return text
 
-parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser("debug", "2")])
-args = parser.parse_args()
+def get_model(version):
+    parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser("debug", version)])
+    args = parser.parse_args()
 
-app = Flask(__name__)
-model = None
-if model is None:
     model, _, _ = build_model(args)
     if args.resume is not None:
         ckpt = torch.load(args.resume, map_location=lambda storage, loc: storage)
         model.load_state_dict(ckpt['model'])
     model.cuda()
-model.eval()
+    model.eval()
+    return model
+
+app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
 def hello_word():
@@ -85,6 +86,8 @@ def predict():
     img_file = request.files['img_file']
     img_path = "./mDETD/images/"+img_file.filename
     img_file.save(img_path)
+
+    model = get_model('2')
 
     # version = request.form.get('version')
     im = Image.open(img_path)
@@ -104,6 +107,8 @@ def predict():
     bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep].to('cpu'), im.size)
 
     text = get_results(im, probas[keep], bboxes_scaled)
+
+    torch.cuda.empty_cache()
     return render_template('index.html', prediction=text)
 
 if __name__ == '__main__':
