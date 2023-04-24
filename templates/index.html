@@ -4,18 +4,23 @@
         <title>Tutorial</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">    </head>    
     <body>
+        <img class=" mx-auto d-block" src = "./images/cute-kittens.jpg" width="50%">
         <h1 class="text-center mt-5">Object Detection</h1>
         <form class="p-3 text-center" action="/", method="post" enctype="multipart/form-data">
             <input class="form-control" type="file" name="img_file">
-            <select class="form-control" id="version">
-                <option>0</option>
-                <option>1</option>
-                <option>2</option>
+            <select class="form-control" id="version" name="version">
+                <option value="0">model_0</option>
+                <option value="1">model_1</option>
+                <option value="2">model_2</option>
+                <option value="3">Deformable DETR</option>
+                <option value="4">DETReg</option>
               </select>
             <input class="btn btn-primary mt-3" type="submit" value="Predict Image">
         </form>
-        {% if prediction %}
-            <p class="text-center">Image contains {{prediction}}</p>
-        {% endif %}
+        <!-- {% if prediction %} -->
+            <!-- <p>{{ prediction }}</p> -->
+            <!-- <img class=" mx-auto d-block" src = "{{ prediction }}" width="50%"> -->
+        <!-- {% endif %} -->
+        <!-- <img class=" mx-auto d-block" src = "{{ url_for('video') }}" width="50%"> -->
     </body>
 </html>

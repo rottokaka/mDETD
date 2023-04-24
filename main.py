@@ -175,19 +175,19 @@ def get_args_parser(mode="debug", version="0"):
     elif mode == "demo":
         # model_0
         if version == "0":
-            parser.add_argument('--resume', default='', help='resume from checkpoint')
+            parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_0_.pth', help='resume from checkpoint')
         # model_1
         elif version == "1":
-            parser.add_argument('--resume', default='', help='resume from checkpoint')
+            parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_1_.pth', help='resume from checkpoint')
         # model_2
         elif version == "2":
-            parser.add_argument('--resume', default='', help='resume from checkpoint')
+            parser.add_argument('--resume', default='pre-trained checkpoints/mDETD_2_.pth', help='resume from checkpoint')
         # DDETR
         elif version == "3":
-            parser.add_argument('--resume', default='', help='resume from checkpoint')
+            parser.add_argument('--resume', default='pre-trained checkpoints/DDETR_.pth', help='resume from checkpoint')
         # DETReg
         elif version == "4":
-            parser.add_argument('--resume', default='', help='resume from checkpoint')
+            parser.add_argument('--resume', default='pre-trained checkpoints/DETReg_.pth', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
