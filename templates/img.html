@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Tutorial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+</head>
+
+<body>
+    <section class="h-100 h-custom" style="background-color: #8fc4b7;">
+        <div class="container py-5 h-100">
+            <div class="row d-flex justify-content-center align-items-center h-100">
+                <div class="col-lg-8 col-xl-6">
+                    <div class="card rounded-3">
+                        {% if prediction %}
+                        <img src="{{ prediction }}"
+                            class="w-100" style="border-top-left-radius: .3rem; border-top-right-radius: .3rem;"
+                            alt="Result">
+                        {% endif %}
+                        {% if not prediction %}
+                        <img src="https://s.ipvm.com/uploads/f9f3/57af/e2ddd6cf-d1b2-4935-9141-5713a45e5851.jpg"
+                            class="w-100" style="border-top-left-radius: .3rem; border-top-right-radius: .3rem;"
+                            alt="Sample photo">
+                        {% endif %}
+                        <div class="card-body p-4 p-md-5">
+                            <h3 class="mb-4 pb-2 pb-md-0 mb-md-5 px-md-2"> {{ session['model_name'] }}</h3>
+
+                            <form class="px-md-2" action="/fimg" , method="post" enctype="multipart/form-data">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <label for="img_file" class="form-label">Select an image</label>
+                                        <input class="form-control" type="file" name="img_file">
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success btn-lg mt-5 mb-1">Submit</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+</body>

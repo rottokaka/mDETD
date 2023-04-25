@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, Response
+from flask import Flask, redirect, render_template, request, Response, session, url_for
 import os
 import time
 import argparse
@@ -17,23 +17,9 @@ import matplotlib.pyplot as plt
 
 
 app = Flask(__name__)
+app.secret_key = "lolol"
 # COCO classes
-CLASSES = [
-    'N/A', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
-    'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A',
-    'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse',
-    'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack',
-    'umbrella', 'N/A', 'N/A', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis',
-    'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
-    'skateboard', 'surfboard', 'tennis racket', 'bottle', 'N/A', 'wine glass',
-    'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich',
-    'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
-    'chair', 'couch', 'potted plant', 'bed', 'N/A', 'dining table', 'N/A',
-    'N/A', 'toilet', 'N/A', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
-    'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A',
-    'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier',
-    'toothbrush'
-]
+CLASSES = ['N/A', 'Blue', 'Glass', 'Head', 'Person', 'Red', 'Vest', 'White', 'Yellow']
 
 cap = cv2.VideoCapture(0)
 
@@ -85,7 +71,7 @@ def draw_results(img, prob, boxes):
     return img
 
 def get_model(version):
-    parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser("debug", version)])
+    parser = argparse.ArgumentParser('ViT Deformable DETR training and evaluation script', parents=[get_args_parser("demo", version)])
     args = parser.parse_args()
 
     model, _, _ = build_model(args)
@@ -96,8 +82,8 @@ def get_model(version):
     model.eval()
     return model
 
-def stream():
-    model = get_model('3')
+def stream(version):
+    model = get_model(version)
     
     while True:
         ret, frame = cap.read()
@@ -131,52 +117,80 @@ def stream():
 
 
 @app.route('/')
-def hello_word():
+def home():
+    torch.cuda.empty_cache()
     return render_template('index.html')
 
 @app.route('/', methods=['POST'])
-def predict():
+def home_redirect():
+    session['version'] = request.form.get("version")
+    if session['version'] =="0":
+        session['model_name'] = "model_0"
+    elif session['version'] == "1":
+        session['model_name'] = "model_1"
+    elif session['version'] == "2":
+        session['model_name'] = "model_2"
+    elif session['version'] == "3":
+        session['model_name'] = "DDETR"
+    elif session['version'] == "4":
+        session['model_name'] = "DETReg"
+    type = request.form.get("type")
+    if type == "0":
+        return redirect("/fimg")
+    elif type == "1":
+        return redirect("/fcam")
+
+
+@app.route('/fimg', methods=['GET'])
+def fimg():
+    return render_template('img.html')
+
+@app.route('/fimg', methods=['POST'])
+def fimg_predict():
+    torch.cuda.empty_cache()
     img_file = request.files['img_file']
-    img_path = "./mDETD/images/"+img_file.filename
+    img_path = "./mDETD/static/"+img_file.filename
     img_file.save(img_path)
 
     im = Image.open(img_path).convert('RGB')
 
-    # version = request.form.get('version')
-    # model = get_model(request.form.get("version"))
-    # im = Image.open(img_path).convert('RGB')
-    # frame = np.array(im)
-    # frame = frame[:, :, ::-1].copy()
+    model = get_model(session['version'])
+    im = Image.open(img_path).convert('RGB')
+    frame = np.array(im)
+    frame = frame[:, :, ::-1].copy()
 
-    # # mean-std normalize the input image (batch-size: 1)
-    # img = transform(im).unsqueeze(0)
+    # mean-std normalize the input image (batch-size: 1)
+    img = transform(im).unsqueeze(0)
 
-    # # propagate through the model
-    # with torch.no_grad():
-    #     outputs = model([img.squeeze().to('cuda:0')])
+    # propagate through the model
+    with torch.no_grad():
+        outputs = model([img.squeeze().to('cuda:0')])
 
-    # # # keep only predictions with 0.7+ confidence
-    # probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
-    # keep = probas.max(-1).values >= min(torch.topk(probas.max(-1).values,3).values).item()
-    # # keep = probas.max(-1).values > 0.7
+    # # keep only predictions with 0.7+ confidence
+    probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
+    keep = probas.max(-1).values >= 0.5 #min(torch.topk(probas.max(-1).values,3).values).item()
+    # keep = probas.max(-1).values > 0.7
 
-    # # # convert boxes from [0; 1] to image scales
-    # bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep].to('cpu'), im.size)
+    # # convert boxes from [0; 1] to image scales
+    bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep].to('cpu'), im.size)
 
-    # text = get_results(im, probas[keep], bboxes_scaled)
+    text = get_results(im, probas[keep], bboxes_scaled)
 
-    # frame = draw_results(frame, probas[keep], bboxes_scaled)
+    frame = draw_results(frame, probas[keep], bboxes_scaled)
         
-    # output_image_path = os.path.join("./mDETD/images/", img_file.filename, '.jpg')
-    # cv2.imwrite(output_image_path, frame)
+    output_image_path = img_path
+    cv2.imwrite(output_image_path, frame)
 
-    # torch.cuda.empty_cache()
-    return render_template('index.html', prediction=os.getcwd())
+    torch.cuda.empty_cache()
+    return render_template('img.html', prediction=url_for('static', filename=img_file.filename))
 
 @app.route('/video')
 def video():
-    return
-    # return Response(stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(stream(session['version']), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/fcam')
+def fcam():
+    return render_template('cam.html')
 
 if __name__ == '__main__':
     app.run(port=3000, debug=True)
