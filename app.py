@@ -99,8 +99,10 @@ def stream(version):
 
         # keep 3 pred with highest confident score
         probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
-        # keep = probas.max(-1).values >= min(torch.topk(probas.max(-1).values,3).values).item()
-        keep = probas.max(-1).values > 0.5
+        if version != "3" and version != "4":
+            keep = probas.max(-1).values >= min(torch.topk(probas.max(-1).values,3).values).item()
+        else:
+            keep = probas.max(-1).values >= 0.5
 
         # convert boxes from [0; 1] to image scales
         bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep].to('cpu'), frame.shape[:2][::-1])
@@ -168,8 +170,10 @@ def fimg_predict():
 
     # # keep only predictions with 0.7+ confidence
     probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
-    keep = probas.max(-1).values >= 0.5 #min(torch.topk(probas.max(-1).values,3).values).item()
-    # keep = probas.max(-1).values > 0.7
+    if session['version'] != "3" and session['version'] != "4":
+        keep = probas.max(-1).values >= min(torch.topk(probas.max(-1).values,3).values).item()
+    else:
+        keep = probas.max(-1).values >= 0.5
 
     # # convert boxes from [0; 1] to image scales
     bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep].to('cpu'), im.size)
