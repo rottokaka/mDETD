@@ -23,7 +23,7 @@
 ## <a name="introduction"></a> Introduction
 About this repository:
 - It was built based on the official implementation of the paper [Deformable DETR: Deformable Transformers for End-to-End Object Detection](https://github.com/fundamentalvision/Deformable-DETR). 
-- This is the a summary of our final project at FPT university. For more details about the project, please take a look at our dissertation [here!](https://drive.google.com/drive/folders/1kZmqb7pM0cy5Ww1Swt6KqmZImHyLHo6y?usp=sharing)
+- This is the summary of our final project at FPT university. For more details about the project, please take a look at our dissertation [here!](https://drive.google.com/drive/folders/1kZmqb7pM0cy5Ww1Swt6KqmZImHyLHo6y?usp=sharing)
 - In this project, we try different ways to assemble models based on the two currently state-of-the-art approaches in Fewshot Object Detection, which are [imTED](https://arxiv.org/abs/2205.09613) and [DETReg](https://arxiv.org/abs/2106.04550). With the hope that it can be applied to PPE detection tasks in low-data regimes.
 - If you're looking for a model that can actually work, this is definitely not the place. Since there are lots of limitations in computation resources and time, our models haven't converged yet; furthermore, lots of training settings and architecture are modified so that each epoch can be finished within a Kaggle session time limit.
 
