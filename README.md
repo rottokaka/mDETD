@@ -122,7 +122,7 @@ In this part, we generate image with weather effect follow the [article](https:/
 ```
 
 ### <a name="usage"></a> Usage
-In order to run app.py, please organize the reposity as follow:
+In order to run app.py, please organize the reposity as follow and open it from code_root:
 ```
 code_root/
 ├── mDETD/
