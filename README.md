@@ -18,6 +18,7 @@
     - [Haze, Rain, Low-light effect on CHVGVal](#effect)
 6. [Web application](#web)
     - [Installation](#installation)
+    - [Usage](#usage)
     - [Demo](#demo)
 
 ## <a name="introduction"></a> Introduction
@@ -119,6 +120,20 @@ In this part, we generate image with weather effect follow the [article](https:/
     pip install timm==0.3.2
     pip install Flask
 ```
+
+### <a name="usage"></a> Usage
+In order to run app.py, please organize the reposity as follow:
+```
+code_root/
+├── mDEDT/
+└── pre-trained checkpoints/
+    ├── mDETD_0_.pth
+    ├── mDETD_1_.pth
+    ├── mDETD_2_.pth
+    ├── DDETR_.pth
+    └── DETReg_.pth
+```
+
 
 ### <a name="demo"></a> Demo
 The web application give you some options, you can choose the model (either model_0, model_1, model_2, DDETR, DETReg), and the demo type (either from image or live cam).
