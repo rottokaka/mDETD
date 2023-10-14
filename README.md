@@ -125,7 +125,7 @@ In this part, we generate image with weather effect follow the [article](https:/
 In order to run app.py, please organize the reposity as follow:
 ```
 code_root/
-├── mDEDT/
+├── mDETD/
 └── pre-trained checkpoints/
     ├── mDETD_0_.pth
     ├── mDETD_1_.pth
